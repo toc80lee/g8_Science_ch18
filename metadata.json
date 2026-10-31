@@ -1,0 +1,6 @@
+{
+  "name": "지구과학 Chapter 18: 지구의 대기 (Earth's Atmosphere)",
+  "description": "Chapter 18 Earth's Atmosphere 교재의 모든 내용을 체계적이고 인터랙티브하게 변환한 스마트 학습 플랫폼",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
