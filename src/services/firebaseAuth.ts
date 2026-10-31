@@ -1,16 +1,30 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { 
   getAuth, 
   signInWithPopup, 
   GoogleAuthProvider, 
   onAuthStateChanged, 
   User, 
-  signOut 
+  signOut,
+  Auth
 } from 'firebase/auth';
 import firebaseConfig from './firebaseConfig';
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const auth = getAuth(app);
+let app: FirebaseApp | null = null;
+let authInstance: Auth | null = null;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    authInstance = getAuth(app);
+  } else {
+    console.warn('Firebase apiKey가 제공되지 않았습니다. Vercel 환경 변수(VITE_FIREBASE_API_KEY)를 등록해주세요.');
+  }
+} catch (err) {
+  console.warn('Firebase 초기화 대기 중 (환경 변수 확인 필요):', err);
+}
+
+export const auth = authInstance;
 
 const provider = new GoogleAuthProvider();
 // Google Drive scope for user-specific app file storage
@@ -24,13 +38,16 @@ export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
+  if (!auth) {
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
+
   return onAuthStateChanged(auth, async (user: User | null) => {
     if (user) {
       if (cachedAccessToken) {
         if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
       } else if (!isSigningIn) {
-        // If user is logged in to Firebase but token is not in memory (e.g. page refresh),
-        // we can prompt user or use silent token refresh when needed
         if (onAuthFailure) onAuthFailure();
       }
     } else {
@@ -41,6 +58,10 @@ export const initAuth = (
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string }> => {
+  if (!auth) {
+    throw new Error('Firebase가 구성되지 않았습니다. Vercel 환경 변수에 VITE_FIREBASE_API_KEY를 등록해주세요.');
+  }
+
   try {
     isSigningIn = true;
     const result = await signInWithPopup(auth, provider);
@@ -68,6 +89,8 @@ export const setAccessToken = (token: string | null) => {
 };
 
 export const googleSignOut = async () => {
-  await signOut(auth);
+  if (auth) {
+    await signOut(auth);
+  }
   cachedAccessToken = null;
 };
