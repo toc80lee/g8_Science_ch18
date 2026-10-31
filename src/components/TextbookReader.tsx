@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ChapterSection, CustomWord } from '../types';
+import React, { useState, useRef, useMemo } from 'react';
+import { ChapterSection, CustomWord, HighlightColor, TextHighlight } from '../types';
 import { getPageImagesForSection, PageImageInfo } from '../data/textbookPageImages';
 import { 
   BookOpen, 
@@ -20,19 +20,37 @@ import {
   Eye,
   Columns,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  Highlighter,
+  Trash2,
+  Palette,
+  CheckCircle2,
+  Underline as UnderlineIcon,
+  Volume2,
+  VolumeX,
+  Play,
+  Square,
+  Headphones
 } from 'lucide-react';
 
 interface TextbookReaderProps {
   section: ChapterSection;
   onAddCustomWord: (wordData: { word: string; meaning: string; contextSentence?: string; sourceSectionTitle?: string; sourcePage?: number }) => void;
   customWords: CustomWord[];
+  highlights?: TextHighlight[];
+  onSaveHighlight?: (highlight: TextHighlight) => void;
+  onDeleteHighlight?: (id: string) => void;
+  onClearSectionHighlights?: (sectionId: string) => void;
 }
 
 export const TextbookReader: React.FC<TextbookReaderProps> = ({ 
   section,
   onAddCustomWord,
-  customWords
+  customWords,
+  highlights = [],
+  onSaveHighlight,
+  onDeleteHighlight,
+  onClearSectionHighlights
 }) => {
   // Main view mode: 'text' (default) | 'visual' (page gallery) | 'split' (side-by-side text & scan)
   const [viewLayout, setViewLayout] = useState<'text' | 'visual' | 'split'>('text');
@@ -41,7 +59,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   // Toggle for textbook original image verification section below text
   const [isImageSectionExpanded, setIsImageSectionExpanded] = useState<boolean>(false);
   
-  // Selected text for custom vocabulary
+  // Selected text for custom vocabulary & highlighting
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number } | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -49,6 +67,16 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   const [modalMeaning, setModalMeaning] = useState<string>('');
   const [modalContext, setModalContext] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Active highlight popover (when clicking an existing highlight)
+  const [activeHighlightPopover, setActiveHighlightPopover] = useState<{
+    highlight: TextHighlight;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Modal to review all highlights in this section
+  const [isHighlightListOpen, setIsHighlightListOpen] = useState<boolean>(false);
 
   // Lightbox modal state for high-res textbook page viewing
   const [lightboxImage, setLightboxImage] = useState<PageImageInfo | null>(null);
@@ -60,9 +88,152 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   const safePageIndex = Math.min(activePageIndex, Math.max(0, pageImages.length - 1));
   const activeImage = pageImages[safePageIndex] || pageImages[0];
 
+  // Highlights filtered for current section
+  const sectionHighlights = useMemo(() => {
+    return highlights.filter(h => h.sectionId === section.id);
+  }, [highlights, section.id]);
+
+  // TTS (Text-to-Speech) state for reading English textbook aloud
+  const [ttsState, setTtsState] = useState<{
+    isPlaying: boolean;
+    isPaused: boolean;
+    currentParagraphIndex: number | null;
+    speed: number;
+  }>({
+    isPlaying: false,
+    isPaused: false,
+    currentParagraphIndex: null,
+    speed: 1.0,
+  });
+
+  const ttsSequenceRef = useRef<{ cancelRequested: boolean }>({ cancelRequested: false });
+
+  const stopTTS = () => {
+    ttsSequenceRef.current.cancelRequested = true;
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setTtsState(prev => ({
+      ...prev,
+      isPlaying: false,
+      isPaused: false,
+      currentParagraphIndex: null,
+    }));
+  };
+
+  const getBestEnglishVoice = (): SpeechSynthesisVoice | null => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+    const naturalVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Karen')));
+    if (naturalVoice) return naturalVoice;
+    return voices.find(v => v.lang.startsWith('en')) || null;
+  };
+
+  const speakSingleParagraph = (text: string, index: number, onComplete?: () => void) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setToastMessage('이 브라우저는 음성 읽기(TTS)를 지원하지 않습니다.');
+      setTimeout(() => setToastMessage(null), 3000);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    // Clean text: strip brackets, asterisks
+    const cleanText = text.replace(/\[\d+\]/g, '').replace(/\*+/g, '').trim();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'en-US';
+    utterance.rate = ttsState.speed;
+    utterance.pitch = 1.0;
+
+    const voice = getBestEnglishVoice();
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.onstart = () => {
+      setTtsState(prev => ({
+        ...prev,
+        isPlaying: true,
+        isPaused: false,
+        currentParagraphIndex: index,
+      }));
+    };
+
+    utterance.onend = () => {
+      if (onComplete) {
+        onComplete();
+      } else {
+        setTtsState(prev => ({
+          ...prev,
+          isPlaying: false,
+          isPaused: false,
+          currentParagraphIndex: null,
+        }));
+      }
+    };
+
+    utterance.onerror = (e) => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') {
+        console.warn('TTS error:', e);
+      }
+      setTtsState(prev => ({
+        ...prev,
+        isPlaying: false,
+        isPaused: false,
+        currentParagraphIndex: null,
+      }));
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const playFullEnglishSection = () => {
+    if (ttsState.isPlaying && !ttsState.isPaused) {
+      stopTTS();
+      return;
+    }
+    ttsSequenceRef.current.cancelRequested = false;
+    const paragraphs = section.contentEn;
+    if (!paragraphs || paragraphs.length === 0) return;
+
+    const playStep = (idx: number) => {
+      if (ttsSequenceRef.current.cancelRequested || idx >= paragraphs.length) {
+        setTtsState(prev => ({
+          ...prev,
+          isPlaying: false,
+          isPaused: false,
+          currentParagraphIndex: null,
+        }));
+        return;
+      }
+
+      speakSingleParagraph(paragraphs[idx], idx, () => {
+        setTimeout(() => {
+          if (!ttsSequenceRef.current.cancelRequested) {
+            playStep(idx + 1);
+          }
+        }, 500);
+      });
+    };
+
+    playStep(0);
+  };
+
+  // Stop TTS on section changes or unmount
+  React.useEffect(() => {
+    stopTTS();
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [section.id]);
+
   // Reset active page index when section changes
   React.useEffect(() => {
     setActivePageIndex(0);
+    setActiveHighlightPopover(null);
+    setSelectionPos(null);
   }, [section.id]);
 
   // Support Left / Right arrow keys for page flipping in visual mode
@@ -71,7 +242,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Do not flip if modal or input is focused
-      if (isAddModalOpen) return;
+      if (isAddModalOpen || isHighlightListOpen) return;
       const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
       if (targetTag === 'input' || targetTag === 'textarea') return;
 
@@ -100,31 +271,157 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewLayout, pageImages, isAddModalOpen, lightboxImage]);
+  }, [viewLayout, pageImages, isAddModalOpen, isHighlightListOpen, lightboxImage]);
 
-  // Detect text selection in textbook
+  // Detect text selection in textbook (supports words and full sentences up to 350 chars)
   const handleMouseUp = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
-      if (!isAddModalOpen) {
+      if (!isAddModalOpen && !activeHighlightPopover) {
         setSelectionPos(null);
       }
       return;
     }
 
     const text = selection.toString().trim();
-    if (text.length > 0 && text.length < 100) {
+    if (text.length > 0 && text.length < 350) {
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       
       setSelectedText(text);
+      setActiveHighlightPopover(null);
       setSelectionPos({
         x: rect.left + rect.width / 2,
-        y: rect.top - 8
+        y: Math.max(10, rect.top - 12)
       });
     } else {
       setSelectionPos(null);
     }
+  };
+
+  // Highlighting Action Handlers
+  const handleApplyHighlight = (color: HighlightColor) => {
+    if (!selectedText.trim()) return;
+    const newHighlight: TextHighlight = {
+      id: `hl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      sectionId: section.id,
+      text: selectedText.trim(),
+      color,
+      createdAt: new Date().toISOString()
+    };
+    onSaveHighlight?.(newHighlight);
+    
+    const colorLabel = 
+      color === 'yellow' ? '노랑 형광펜' :
+      color === 'mint' ? '민트 형광펜' :
+      color === 'pink' ? '핑크 형광펜' :
+      color === 'underline-red' ? '빨간색 밑줄' : '파란색 밑줄';
+
+    setToastMessage(`✓ ${colorLabel}으로 중요 표시되었습니다!`);
+    setTimeout(() => setToastMessage(null), 2500);
+    
+    window.getSelection()?.removeAllRanges();
+    setSelectionPos(null);
+    setSelectedText('');
+  };
+
+  const handleUpdateHighlightColor = (highlight: TextHighlight, newColor: HighlightColor) => {
+    const updated = { ...highlight, color: newColor };
+    onSaveHighlight?.(updated);
+    setActiveHighlightPopover(null);
+    setToastMessage('표시 색상이 변경되었습니다.');
+    setTimeout(() => setToastMessage(null), 2000);
+  };
+
+  const handleDeleteHighlightItem = (id: string) => {
+    onDeleteHighlight?.(id);
+    setActiveHighlightPopover(null);
+    setToastMessage('하이라이트가 삭제되었습니다.');
+    setTimeout(() => setToastMessage(null), 2000);
+  };
+
+  const getHighlightClassName = (color: HighlightColor) => {
+    switch (color) {
+      case 'yellow':
+        return 'bg-amber-200/90 text-amber-950 px-1 py-0.5 rounded shadow-2xs border-b border-amber-300 font-medium cursor-pointer hover:bg-amber-300 transition-colors inline';
+      case 'mint':
+        return 'bg-emerald-200/90 text-emerald-950 px-1 py-0.5 rounded shadow-2xs border-b border-emerald-300 font-medium cursor-pointer hover:bg-emerald-300 transition-colors inline';
+      case 'pink':
+        return 'bg-pink-200/90 text-pink-950 px-1 py-0.5 rounded shadow-2xs border-b border-pink-300 font-medium cursor-pointer hover:bg-pink-300 transition-colors inline';
+      case 'underline-red':
+        return 'underline decoration-red-500 decoration-[2.5px] underline-offset-4 font-semibold text-gray-900 bg-red-50/60 px-0.5 rounded cursor-pointer hover:bg-red-100 transition-colors inline';
+      case 'underline-blue':
+        return 'underline decoration-blue-600 decoration-[2.5px] underline-offset-4 font-semibold text-gray-900 bg-blue-50/60 px-0.5 rounded cursor-pointer hover:bg-blue-100 transition-colors inline';
+      default:
+        return 'bg-amber-200/90 text-amber-950 px-1 py-0.5 rounded cursor-pointer inline';
+    }
+  };
+
+  // Helper to render paragraph with non-overlapping highlights
+  const renderAnnotatedParagraph = (paragraphText: string, _lang: 'ko' | 'en', _pIndex: number) => {
+    const matches: { start: number; end: number; highlight: TextHighlight }[] = [];
+    
+    // Sort highlights by length descending to match longer phrases first
+    const relevantHighlights = [...sectionHighlights].sort((a, b) => b.text.length - a.text.length);
+
+    for (const hl of relevantHighlights) {
+      if (!hl.text || hl.text.length < 2) continue;
+      let searchPos = 0;
+      while (searchPos < paragraphText.length) {
+        const idx = paragraphText.indexOf(hl.text, searchPos);
+        if (idx === -1) break;
+        const end = idx + hl.text.length;
+        
+        // Prevent overlap with already registered matches
+        const overlaps = matches.some(m => Math.max(m.start, idx) < Math.min(m.end, end));
+        if (!overlaps) {
+          matches.push({ start: idx, end, highlight: hl });
+        }
+        searchPos = idx + 1;
+      }
+    }
+
+    if (matches.length === 0) {
+      return paragraphText;
+    }
+
+    matches.sort((a, b) => a.start - b.start);
+
+    const elements: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    matches.forEach((m, idx) => {
+      if (m.start > lastIndex) {
+        elements.push(paragraphText.slice(lastIndex, m.start));
+      }
+      
+      elements.push(
+        <mark
+          key={`hl-${m.highlight.id}-${idx}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            setActiveHighlightPopover({
+              highlight: m.highlight,
+              x: rect.left + rect.width / 2,
+              y: Math.max(10, rect.top - 10)
+            });
+          }}
+          title="클릭하여 색상 변경 또는 지우기"
+          className={getHighlightClassName(m.highlight.color)}
+        >
+          {paragraphText.slice(m.start, m.end)}
+        </mark>
+      );
+
+      lastIndex = m.end;
+    });
+
+    if (lastIndex < paragraphText.length) {
+      elements.push(paragraphText.slice(lastIndex));
+    }
+
+    return <>{elements}</>;
   };
 
   const handleOpenAddModal = (wordToUse?: string) => {
@@ -174,6 +471,130 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
     setZoomLevel(1);
   };
 
+  const renderTTSAudioBar = (isCompact = false) => (
+    <div className="bg-gradient-to-r from-blue-50 via-indigo-50/70 to-blue-50/40 border border-blue-200/80 rounded-xl p-3 sm:p-3.5 mb-4 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 transition-all">
+      <div className="flex items-center space-x-2.5">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white transition-all shadow-2xs shrink-0 ${
+          ttsState.isPlaying ? 'bg-indigo-600 animate-pulse' : 'bg-blue-600'
+        }`}>
+          <Headphones className="w-4 h-4" />
+        </div>
+        <div>
+          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+            <span className="text-xs font-bold text-gray-900">
+              영어 원문 소리내어 읽기 (Read Aloud)
+            </span>
+            {ttsState.isPlaying && (
+              <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full flex items-center space-x-1 animate-pulse">
+                <Volume2 className="w-3 h-3" />
+                <span>
+                  {ttsState.currentParagraphIndex !== null
+                    ? `${ttsState.currentParagraphIndex + 1}번째 문단 읽는 중`
+                    : '재생 중'}
+                </span>
+              </span>
+            )}
+          </div>
+          {!isCompact && (
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              💡 원어민 발음으로 들으며 과학 용어 발음과 문맥을 익혀보세요. 각 문단 옆 스피커 아이콘을 누르면 개별 듣기도 가능합니다.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+        {/* Speed selection */}
+        <div className="flex items-center space-x-0.5 bg-white border border-gray-200 rounded-lg p-0.5 text-[11px] font-semibold text-gray-600 shadow-2xs">
+          <span className="px-1 text-gray-400 text-[10px]">속도:</span>
+          {[
+            { label: '0.8x 천천히', value: 0.8 },
+            { label: '1.0x 표준', value: 1.0 },
+            { label: '1.2x 빠름', value: 1.2 },
+          ].map((spd) => (
+            <button
+              key={spd.value}
+              onClick={() => {
+                setTtsState(prev => ({ ...prev, speed: spd.value }));
+                if (ttsState.isPlaying) {
+                  stopTTS();
+                }
+              }}
+              className={`px-1.5 py-0.5 rounded cursor-pointer transition-colors ${
+                ttsState.speed === spd.value
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}
+            >
+              {spd.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Play/Stop Button */}
+        {ttsState.isPlaying ? (
+          <button
+            onClick={stopTTS}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-colors"
+          >
+            <Square className="w-3 h-3 fill-current" />
+            <span>읽기 중지</span>
+          </button>
+        ) : (
+          <button
+            onClick={playFullEnglishSection}
+            className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-colors"
+          >
+            <Play className="w-3 h-3 fill-current" />
+            <span>전체 듣기</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEnglishParagraphItem = (p: string, i: number) => {
+    const isCurrentlyPlaying = ttsState.currentParagraphIndex === i && ttsState.isPlaying;
+
+    return (
+      <div
+        key={i}
+        className={`group relative p-2.5 rounded-lg transition-all ${
+          isCurrentlyPlaying
+            ? 'bg-indigo-50/90 ring-2 ring-indigo-400 shadow-2xs'
+            : 'hover:bg-blue-50/20'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2.5">
+          <p className="font-serif text-justify text-sm sm:text-base text-gray-800 leading-relaxed flex-1 select-text">
+            {renderAnnotatedParagraph(p, 'en', i)}
+          </p>
+          <button
+            onClick={() => {
+              if (isCurrentlyPlaying) {
+                stopTTS();
+              } else {
+                speakSingleParagraph(p, i);
+              }
+            }}
+            className={`p-1.5 rounded-md transition-all shrink-0 cursor-pointer ${
+              isCurrentlyPlaying
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50 opacity-60 group-hover:opacity-100'
+            }`}
+            title={isCurrentlyPlaying ? '문단 읽기 중지' : '이 문단 영어 음성으로 듣기'}
+          >
+            {isCurrentlyPlaying ? (
+              <Square className="w-3.5 h-3.5 fill-current animate-pulse" />
+            ) : (
+              <Volume2 className="w-3.5 h-3.5" />
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="my-6 space-y-4" ref={containerRef} onMouseUp={handleMouseUp}>
       {/* Toast notification */}
@@ -184,27 +605,176 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
         </div>
       )}
 
-      {/* Floating Selection Tooltip Button */}
-      {selectionPos && (
+      {/* Floating Selection Tooltip (Highlighting & Dictionary) */}
+      {selectionPos && selectedText && (
         <div
           style={{
             position: 'fixed',
             left: `${selectionPos.x}px`,
             top: `${selectionPos.y}px`,
             transform: 'translate(-50%, -100%)',
-            zIndex: 45
+            zIndex: 50
           }}
-          className="animate-in fade-in zoom-in-95 duration-150"
+          className="animate-in fade-in zoom-in-95 duration-150 flex items-center bg-gray-900/95 backdrop-blur-sm text-white px-2 py-1.5 rounded-full shadow-2xl border border-gray-700 space-x-1.5"
+          onMouseDown={(e) => e.stopPropagation()}
         >
+          {/* Highlighter Color Buttons */}
+          <div className="flex items-center space-x-1 pl-1 pr-1.5 border-r border-gray-700">
+            <button
+              title="노랑 형광펜으로 칠하기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleApplyHighlight('yellow');
+              }}
+              className="w-5 h-5 rounded-full bg-amber-300 hover:scale-115 transition-transform border border-amber-400 shadow-2xs cursor-pointer"
+            />
+            <button
+              title="민트 형광펜으로 칠하기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleApplyHighlight('mint');
+              }}
+              className="w-5 h-5 rounded-full bg-emerald-400 hover:scale-115 transition-transform border border-emerald-500 shadow-2xs cursor-pointer"
+            />
+            <button
+              title="핑크 형광펜으로 칠하기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleApplyHighlight('pink');
+              }}
+              className="w-5 h-5 rounded-full bg-pink-400 hover:scale-115 transition-transform border border-pink-500 shadow-2xs cursor-pointer"
+            />
+          </div>
+
+          {/* Underline Buttons */}
+          <div className="flex items-center space-x-1 pr-1.5 border-r border-gray-700">
+            <button
+              title="빨간색 밑줄 긋기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleApplyHighlight('underline-red');
+              }}
+              className="px-1.5 py-0.5 rounded text-[11px] font-bold text-red-400 hover:bg-gray-800 underline decoration-red-500 decoration-2 transition-colors cursor-pointer"
+            >
+              빨강 밑줄
+            </button>
+            <button
+              title="파란색 밑줄 긋기"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleApplyHighlight('underline-blue');
+              }}
+              className="px-1.5 py-0.5 rounded text-[11px] font-bold text-blue-400 hover:bg-gray-800 underline decoration-blue-500 decoration-2 transition-colors cursor-pointer"
+            >
+              파랑 밑줄
+            </button>
+          </div>
+
+          {/* Add to Vocabulary */}
           <button
+            title="나만의 단어장에 등록"
             onMouseDown={(e) => {
               e.preventDefault();
               handleOpenAddModal();
             }}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-full shadow-lg border border-blue-400 transition-all hover:scale-105 cursor-pointer"
+            className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
           >
             <BookmarkPlus className="w-3.5 h-3.5" />
-            <span>나만의 사전에 추가</span>
+            <span className="hidden sm:inline">단어장</span>
+          </button>
+
+          {/* Close */}
+          <button
+            title="선택 닫기"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              window.getSelection()?.removeAllRanges();
+              setSelectionPos(null);
+            }}
+            className="p-1 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Active Highlight Click Popover (Change color, delete, or add to vocab) */}
+      {activeHighlightPopover && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${activeHighlightPopover.x}px`,
+            top: `${activeHighlightPopover.y}px`,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 50
+          }}
+          className="animate-in fade-in zoom-in-95 duration-150 bg-white text-gray-900 p-2 rounded-xl shadow-2xl border border-gray-200 flex items-center space-x-2 text-xs"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="text-[11px] font-bold text-gray-500 pl-1">표시 스타일:</span>
+          <div className="flex items-center space-x-1">
+            <button
+              title="노랑 형광펜"
+              onClick={() => handleUpdateHighlightColor(activeHighlightPopover.highlight, 'yellow')}
+              className="w-5 h-5 rounded-full bg-amber-300 hover:scale-115 transition-transform border border-amber-400 cursor-pointer"
+            />
+            <button
+              title="민트 형광펜"
+              onClick={() => handleUpdateHighlightColor(activeHighlightPopover.highlight, 'mint')}
+              className="w-5 h-5 rounded-full bg-emerald-400 hover:scale-115 transition-transform border border-emerald-500 cursor-pointer"
+            />
+            <button
+              title="핑크 형광펜"
+              onClick={() => handleUpdateHighlightColor(activeHighlightPopover.highlight, 'pink')}
+              className="w-5 h-5 rounded-full bg-pink-400 hover:scale-115 transition-transform border border-pink-500 cursor-pointer"
+            />
+            <button
+              title="빨강 밑줄"
+              onClick={() => handleUpdateHighlightColor(activeHighlightPopover.highlight, 'underline-red')}
+              className="px-1.5 py-0.5 text-[11px] font-bold text-red-600 underline decoration-red-500 hover:bg-red-50 rounded cursor-pointer"
+            >
+              U
+            </button>
+            <button
+              title="파랑 밑줄"
+              onClick={() => handleUpdateHighlightColor(activeHighlightPopover.highlight, 'underline-blue')}
+              className="px-1.5 py-0.5 text-[11px] font-bold text-blue-600 underline decoration-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+            >
+              U
+            </button>
+          </div>
+
+          <div className="h-4 w-px bg-gray-200" />
+
+          {/* Delete Highlight */}
+          <button
+            title="지우개 (하이라이트 삭제)"
+            onClick={() => handleDeleteHighlightItem(activeHighlightPopover.highlight.id)}
+            className="flex items-center space-x-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded font-semibold transition-colors cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="text-[11px]">지우기</span>
+          </button>
+
+          {/* Wordbook shortcut */}
+          <button
+            title="나만의 단어장에 저장"
+            onClick={() => {
+              handleOpenAddModal(activeHighlightPopover.highlight.text);
+              setActiveHighlightPopover(null);
+            }}
+            className="flex items-center space-x-1 px-2 py-1 text-blue-600 hover:bg-blue-50 rounded font-semibold transition-colors cursor-pointer"
+          >
+            <BookmarkPlus className="w-3.5 h-3.5" />
+            <span className="text-[11px]">단어장</span>
+          </button>
+
+          {/* Close */}
+          <button
+            onClick={() => setActiveHighlightPopover(null)}
+            className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
@@ -308,6 +878,16 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               >
                 <Plus className="w-3 h-3" />
                 <span>단어 직접 등록</span>
+              </button>
+
+              {/* Highlight list / reviewer button */}
+              <button
+                onClick={() => setIsHighlightListOpen(true)}
+                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
+                title="본문 형광펜·밑줄 표시 목록 열기"
+              >
+                <Highlighter className="w-3 h-3 text-amber-600" />
+                <span>형광펜·밑줄 ({sectionHighlights.length})</span>
               </button>
 
               {/* Language Toggle */}
@@ -558,11 +1138,14 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
             </div>
 
             <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed max-h-[750px] overflow-y-auto pr-2">
-              {(langMode === 'en' ? section.contentEn : section.contentKo).map((p, i) => (
-                <p key={i} className="hover:bg-blue-50/30 p-1 rounded transition-colors text-justify">
-                  {p}
-                </p>
-              ))}
+              {langMode === 'en' && renderTTSAudioBar(true)}
+              {langMode === 'en'
+                ? section.contentEn.map((p, i) => renderEnglishParagraphItem(p, i))
+                : section.contentKo.map((p, i) => (
+                    <p key={i} className="hover:bg-blue-50/30 p-1 rounded transition-colors text-justify">
+                      {renderAnnotatedParagraph(p, 'ko', i)}
+                    </p>
+                  ))}
 
               {section.sidebar && (
                 <div className="mt-4 border border-amber-300 bg-amber-50/70 rounded-lg p-3.5 text-xs text-amber-900 leading-relaxed">
@@ -570,7 +1153,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     ★ 교재 심화: {section.sidebar.titleKo}
                   </div>
                   {section.sidebar.contentKo.map((p, i) => (
-                    <p key={i} className="mt-1">{p}</p>
+                    <p key={i} className="mt-1">{renderAnnotatedParagraph(p, 'ko', i)}</p>
                   ))}
                 </div>
               )}
@@ -659,7 +1242,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                   <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed select-text">
                     {section.contentKo.map((p, i) => (
                       <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
-                        {p}
+                        {renderAnnotatedParagraph(p, 'ko', i)}
                       </p>
                     ))}
                   </div>
@@ -671,26 +1254,26 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     <span>English Original Textbook</span>
                     <span className="text-[10px] text-gray-400 font-normal">Select word to save</span>
                   </div>
+                  {renderTTSAudioBar(true)}
                   <div className="space-y-3.5 text-sm text-gray-700 leading-relaxed select-text">
-                    {section.contentEn.map((p, i) => (
-                      <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
-                        {p}
-                      </p>
-                    ))}
+                    {section.contentEn.map((p, i) => renderEnglishParagraphItem(p, i))}
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-4 select-text">
+                {langMode === 'en' && renderTTSAudioBar(false)}
                 <div className="space-y-3.5 text-sm sm:text-base text-gray-800 leading-relaxed">
-                  {(langMode === 'ko' ? section.contentKo : section.contentEn).map((p, i) => (
-                    <p 
-                      key={i} 
-                      className={`p-1 rounded hover:bg-blue-50/20 transition-colors ${langMode === 'en' ? 'font-serif text-justify' : 'text-justify'}`}
-                    >
-                      {p}
-                    </p>
-                  ))}
+                  {langMode === 'ko'
+                    ? section.contentKo.map((p, i) => (
+                        <p 
+                          key={i} 
+                          className="p-1 rounded hover:bg-blue-50/20 transition-colors text-justify"
+                        >
+                          {renderAnnotatedParagraph(p, 'ko', i)}
+                        </p>
+                      ))
+                    : section.contentEn.map((p, i) => renderEnglishParagraphItem(p, i))}
                 </div>
               </div>
             )}
@@ -714,7 +1297,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
                 <div className="space-y-2.5 text-xs sm:text-sm text-amber-900 leading-relaxed">
                   {(langMode === 'en' ? section.sidebar.contentEn : section.sidebar.contentKo).map((p, i) => (
-                    <p key={i}>{p}</p>
+                    <p key={i}>{renderAnnotatedParagraph(p, langMode === 'en' ? 'en' : 'ko', i)}</p>
                   ))}
                 </div>
               </div>
@@ -1021,6 +1604,133 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Highlighted Quotes Review Modal */}
+      {isHighlightListOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-gray-200 max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <Highlighter className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center space-x-2">
+                    <span>형광펜 & 밑줄 표시 모아보기</span>
+                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                      {sectionHighlights.length}개
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    {section.titleEn} ({section.titleKo})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsHighlightListOpen(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List Body */}
+            <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1">
+              {sectionHighlights.length === 0 ? (
+                <div className="text-center py-10 px-4 space-y-3">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-amber-50 text-amber-500 flex items-center justify-center">
+                    <Highlighter className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-gray-800">
+                      아직 표시된 형광펜이나 밑줄이 없습니다.
+                    </p>
+                    <p className="text-xs text-gray-500 max-w-xs mx-auto leading-relaxed">
+                      본문에서 중요한 단어나 문장을 마우스나 손가락으로 드래그하면 노랑·민트·핑크 형광펜 또는 빨강·파랑 밑줄을 그을 수 있습니다.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                sectionHighlights.map((hl: TextHighlight) => {
+                  const colorBadge = 
+                    hl.color === 'yellow' ? { name: '노랑 형광펜', bg: 'bg-amber-100 text-amber-900 border-amber-300' } :
+                    hl.color === 'mint' ? { name: '민트 형광펜', bg: 'bg-emerald-100 text-emerald-900 border-emerald-300' } :
+                    hl.color === 'pink' ? { name: '핑크 형광펜', bg: 'bg-pink-100 text-pink-900 border-pink-300' } :
+                    hl.color === 'underline-red' ? { name: '빨간 밑줄', bg: 'bg-red-50 text-red-700 border-red-200' } :
+                    { name: '파란 밑줄', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+
+                  return (
+                    <div
+                      key={hl.id}
+                      className="p-3 rounded-xl border border-gray-200 bg-gray-50/70 hover:bg-gray-50 transition-colors space-y-2 group"
+                    >
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className={`px-2 py-0.5 rounded-full border font-bold ${colorBadge.bg}`}>
+                          {colorBadge.name}
+                        </span>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => {
+                              handleOpenAddModal(hl.text);
+                              setIsHighlightListOpen(false);
+                            }}
+                            className="px-2 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded font-semibold flex items-center space-x-1 cursor-pointer"
+                            title="단어장에 추가"
+                          >
+                            <BookmarkPlus className="w-3.5 h-3.5" />
+                            <span>단어장</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteHighlightItem(hl.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 rounded cursor-pointer"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-800 leading-relaxed font-medium bg-white p-2.5 rounded-lg border border-gray-100">
+                        "{hl.text}"
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+              {sectionHighlights.length > 0 && onClearSectionHighlights ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('이 단원의 모든 형광펜 및 밑줄 표시를 삭제하시겠습니까?')) {
+                      onClearSectionHighlights(section.id);
+                      setIsHighlightListOpen(false);
+                      setToastMessage('이 단원의 모든 하이라이트가 초기화되었습니다.');
+                      setTimeout(() => setToastMessage(null), 2500);
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700 font-medium hover:underline cursor-pointer"
+                >
+                  이 구역 전체 지우기
+                </button>
+              ) : (
+                <span className="text-[11px] text-gray-400">구글 드라이브와 자동 동기화됩니다.</span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsHighlightListOpen(false)}
+                className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-lg shadow-xs cursor-pointer"
+              >
+                닫기
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -36,6 +36,23 @@ export interface CustomWord {
   isMemorized: boolean;
 }
 
+export type HighlightColor = 
+  | 'yellow' 
+  | 'mint' 
+  | 'pink' 
+  | 'underline-red' 
+  | 'underline-blue';
+
+export interface TextHighlight {
+  id: string;
+  sectionId: string;
+  lang?: 'ko' | 'en';
+  paragraphIndex?: number;
+  text: string;
+  color: HighlightColor;
+  createdAt: string | number;
+}
+
 export interface MarginNote {
   originalText: string;
   translation: string;
@@ -74,7 +91,7 @@ export interface ChapterSection {
   id: string;
   category: SectionCategory;
   numberBadge: string;
-  lessonTag: string;
+  lessonTag?: string;
   titleKo: string;
   titleEn: string;
   breadcrumb: string;

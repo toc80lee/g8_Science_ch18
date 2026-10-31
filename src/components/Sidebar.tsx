@@ -71,20 +71,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <button
         key={section.id}
         onClick={() => handleItemClick(() => onSelectSection(section.id))}
-        className={`w-full text-left flex items-center justify-between py-2 px-3 text-xs sm:text-sm transition-colors cursor-pointer ${
+        className={`w-full text-left flex items-start justify-between py-2 px-3 text-xs sm:text-sm transition-colors cursor-pointer group ${
           isActive
             ? 'bg-blue-50 font-bold text-blue-900 border-l-4 border-blue-600 pl-2.5'
-            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
+            : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-l-4 border-transparent'
         }`}
+        title={section.titleEn}
       >
-        <div className="flex items-center space-x-2 truncate">
-          <span className="text-gray-400 font-mono text-xs w-4 text-right shrink-0">
+        <div className="flex items-start space-x-2 min-w-0 pr-1">
+          <span className="text-gray-400 font-mono text-xs w-4 text-right shrink-0 pt-0.5">
             {displayIndex}
           </span>
-          <span className="truncate">{section.titleKo}</span>
+          <div className="flex flex-col min-w-0 truncate">
+            {/* English Title Only */}
+            <span className="truncate font-semibold text-xs sm:text-[13px] text-gray-900 group-hover:text-blue-700">
+              {section.titleEn}
+            </span>
+          </div>
         </div>
         {isCompleted && (
-          <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1" />
+          <Check className="w-3.5 h-3.5 text-blue-600 shrink-0 ml-1 mt-0.5" />
         )}
       </button>
     );
@@ -101,19 +107,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Main Sidebar: Floating drawer on mobile, sticky sidebar on desktop */}
       <aside className="fixed inset-y-0 left-0 z-50 w-72 sm:w-80 bg-white shadow-2xl flex flex-col h-full lg:static lg:h-[calc(100vh-3.5rem)] lg:top-14 lg:z-auto lg:shadow-none lg:w-64 lg:sm:w-72 border-r border-gray-200 select-none animate-in slide-in-from-left duration-200">
-        {/* div:nth-of-type(1) - Quick Search & Title Header */}
+        {/* Quick Search & Title Header */}
         <div className="p-3 border-b border-gray-100 bg-white">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
             <div className="flex items-center space-x-1.5 text-xs font-bold text-gray-800">
               <BookOpen className="w-4 h-4 text-blue-600" />
-              <span>단원 목차 & 검색</span>
+              <span>Table of Contents</span>
             </div>
             {onClose && (
               <button
                 onClick={onClose}
                 className="p-1 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-                title="목차 닫기 (집중 학습 모드)"
-                aria-label="사이드바 닫기"
+                title="Close table of contents (Focus Mode)"
+                aria-label="Close sidebar"
               >
                 <X className="w-4 h-4 lg:hidden" />
                 <PanelLeftClose className="w-4 h-4 hidden lg:block" />
@@ -125,7 +131,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
             <input
               type="text"
-              placeholder="단원 및 개념 검색..."
+              placeholder="Search sections, topics, pages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded focus:outline-none focus:border-blue-500 focus:bg-white"
@@ -133,21 +139,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* div:nth-of-type(2) - Nav List */}
+        {/* Nav List */}
         <div className="flex-1 overflow-y-auto py-3 space-y-5">
           {filteredSections ? (
             <div>
               <div className="px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                검색 결과 ({filteredSections.length})
+                Search Results ({filteredSections.length})
               </div>
               {filteredSections.map((s, idx) => renderSectionItem(s, idx + 1))}
             </div>
           ) : (
             <>
-              {/* 1. 과정 / 시작 */}
+              {/* 1. Overview */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  과정 개요
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  Overview
                 </div>
                 <button
                   onClick={() => handleItemClick(() => onSelectSection(introSections[0]?.id || sections[0].id))}
@@ -157,7 +163,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  · 메인 홈페이지
+                  · Course Overview
                 </button>
                 <button
                   onClick={() => handleItemClick(() => onSelectSection('intro-killer-air'))}
@@ -167,46 +173,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  · 살인자 공기 (Killer Air)
+                  · Killer Air (Intro Case Study)
                 </button>
               </div>
 
-              {/* 2. 18A 대기란 무엇인가? */}
+              {/* 2. 18A */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  18A · 대기란 무엇인가?
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  18A · The Atmosphere
                 </div>
                 {sections18A.map((s, idx) => renderSectionItem(s, idx + 1))}
               </div>
 
-              {/* 3. 18B 대기의 특별 구역 */}
+              {/* 3. 18B */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  18B · 대기의 특별 구역
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  18B · Special Regions
                 </div>
                 {sections18B.map((s, idx) => renderSectionItem(s, idx + 6))}
               </div>
 
-              {/* 4. 18C 대기 중의 에너지 */}
+              {/* 4. 18C */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  18C · 대기 중의 에너지
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  18C · Energy in the Atmosphere
                 </div>
                 {sections18C.map((s, idx) => renderSectionItem(s, idx + 10))}
               </div>
 
-              {/* 5. 단원 총괄 및 평가 */}
+              {/* 5. Chapter Review */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  총괄 평가 & 복습
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  Chapter Review & Assessments
                 </div>
                 {reviewSections.map((s, idx) => renderSectionItem(s, idx + 14))}
               </div>
 
-              {/* 6. 참고 */}
+              {/* 6. Reference & Study Tools */}
               <div>
-                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1">
-                  참고 & 용어 사전
+                <div className="px-4 text-[11px] font-semibold text-gray-400 tracking-wider mb-1 uppercase">
+                  Reference & Study Tools
                 </div>
                 <button
                   onClick={() => handleItemClick(() => onOpenGlossary('key-terms'))}
@@ -218,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <BookMarked className="w-3.5 h-3.5 text-blue-600 mr-1" />
-                    <span>21개 핵심 용어 사전</span>
+                    <span>Key Science Glossary</span>
                   </div>
                   <span className="text-[10px] text-gray-400 font-mono">21</span>
                 </button>
@@ -233,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <span className="text-amber-500 font-bold mr-1">★</span>
-                    <span className="font-medium text-amber-900">나만의 용어 사전</span>
+                    <span className="font-medium text-amber-900">My Custom Vocabulary</span>
                   </div>
                   <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
                     {customWordsCount}
@@ -250,7 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <span className="text-blue-600 font-bold mr-1">📁</span>
-                    <span className="font-medium text-gray-900">내 학습 기록 & Drive</span>
+                    <span className="font-medium text-gray-900">Study Records & Drive</span>
                   </div>
                   <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded-full">
                     MY

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { allChapterSections } from './data/chapter18Data';
 import { keyTermsList } from './data/reviewAndGlossary';
-import { ChapterSection, CustomWord } from './types';
+import { ChapterSection, CustomWord, TextHighlight } from './types';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { InteractiveCard } from './components/InteractiveCard';
@@ -132,6 +132,40 @@ export default function App() {
       return [];
     }
   });
+
+  // Text Highlights & Underlines (본문 형광펜 & 밑줄)
+  const [textHighlights, setTextHighlights] = useState<TextHighlight[]>(() => {
+    try {
+      const saved = localStorage.getItem('ch18_text_highlights');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Sync text highlights to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('ch18_text_highlights', JSON.stringify(textHighlights));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [textHighlights]);
+
+  const handleSaveHighlight = (highlight: TextHighlight) => {
+    setTextHighlights(prev => {
+      const filtered = prev.filter(h => !(h.sectionId === highlight.sectionId && h.text === highlight.text));
+      return [...filtered, highlight];
+    });
+  };
+
+  const handleDeleteHighlight = (id: string) => {
+    setTextHighlights(prev => prev.filter(h => h.id !== id));
+  };
+
+  const handleClearSectionHighlights = (sectionId: string) => {
+    setTextHighlights(prev => prev.filter(h => h.sectionId !== sectionId));
+  };
 
   // Track Selector modal state
   const [isTrackSelectOpen, setIsTrackSelectOpen] = useState<boolean>(false);
@@ -265,7 +299,8 @@ export default function App() {
 
       const result = await syncDataToGoogleDrive(activeToken, {
         history: historyPayload,
-        customVocabulary: customWords
+        customVocabulary: customWords,
+        textHighlights: textHighlights
       });
 
       setDriveFolderId(result.folderId);
@@ -278,7 +313,7 @@ export default function App() {
       setDriveFiles(files);
 
       setIsSyncModalOpen(false);
-      showToast('Google Drive에 학습 이력과 용어 사전이 성공적으로 저장되었습니다!');
+      showToast('Google Drive에 학습 이력, 용어 사전 및 형광펜/밑줄이 성공적으로 저장되었습니다!');
     } catch (error: any) {
       console.error('Drive Sync Error:', error);
       showToast('Google Drive 동기화 중 오류가 발생했습니다. 권한을 확인해주세요.');
@@ -318,12 +353,17 @@ export default function App() {
         setCustomWords(data.customVocabulary);
       }
 
+      if (data.textHighlights && Array.isArray(data.textHighlights) && data.textHighlights.length > 0) {
+        setTextHighlights(data.textHighlights);
+        localStorage.setItem('ch18_text_highlights', JSON.stringify(data.textHighlights));
+      }
+
       if (data.folderId) {
         const files = await listFolderFiles(activeToken, data.folderId);
         setDriveFiles(files);
       }
 
-      showToast('Google Drive에서 학습 이력과 나만의 단어를 성공적으로 불러왔습니다!');
+      showToast('Google Drive에서 학습 이력, 단어장 및 형광펜 기록을 성공적으로 불러왔습니다!');
     } catch (error) {
       console.error('Load Error:', error);
       showToast('Google Drive에서 데이터를 불러오지 못했습니다.');
@@ -542,9 +582,9 @@ export default function App() {
               {/* Breadcrumb strip matching screenshot (blue tinted box) */}
               <div className="bg-blue-50/70 border border-blue-100 rounded px-4 py-2.5 text-xs text-blue-700 font-medium mb-5 flex items-center justify-between">
                 <div className="flex items-center space-x-2 truncate">
-                  <span className="font-semibold">{currentSection.lessonTag}</span>
+                  <span className="font-bold text-blue-900">{currentSection.titleEn}</span>
                   <span className="text-blue-300">·</span>
-                  <span className="truncate">{currentSection.titleKo}</span>
+                  <span className="truncate text-blue-600">{currentSection.titleKo}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-[11px] text-blue-500 font-mono">
                   {user && (
@@ -588,7 +628,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Title Area matching reference screenshot */}
+              {/* Title Area: English First (Textbook original title), Korean Second */}
               <div className="mb-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start space-x-3.5">
@@ -600,11 +640,13 @@ export default function App() {
                       <div className="text-xs text-gray-400 font-medium mb-1">
                         {currentSection.lessonTag}
                       </div>
+                      {/* English Textbook Title in H1 */}
                       <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                        {currentSection.titleKo}
-                      </h1>
-                      <h2 className="text-xs sm:text-sm font-serif italic text-gray-500 mt-1">
                         {currentSection.titleEn}
+                      </h1>
+                      {/* Korean Translation in H2 */}
+                      <h2 className="text-sm sm:text-base font-semibold text-blue-700 mt-1 flex items-center space-x-1.5">
+                        <span>{currentSection.titleKo}</span>
                       </h2>
                     </div>
                   </div>
@@ -633,7 +675,7 @@ export default function App() {
                 {/* 목표 (Objectives) Box with blue left bar identical to reference image */}
                 <div className="border-l-4 border-blue-600 bg-gray-50/80 p-4 rounded-r my-5 text-xs sm:text-sm text-gray-800 leading-relaxed shadow-2xs">
                   <span className="font-bold text-gray-900 block sm:inline mr-2">
-                    목표 ·
+                    목표 · Objectives:
                   </span>
                   <span>
                     {currentSection.objectives.join(' ')}
@@ -641,11 +683,15 @@ export default function App() {
                 </div>
               </div>
 
-              {/* [교재 원문 완전 수록] - 상단 우선 배치 */}
+              {/* [교재 원문 완전 수록] - 상단 우선 배치 및 하이라이트/밑줄 기능 */}
               <TextbookReader
                 section={currentSection}
                 onAddCustomWord={handleAddCustomWord}
                 customWords={customWords}
+                highlights={textHighlights}
+                onSaveHighlight={handleSaveHighlight}
+                onDeleteHighlight={handleDeleteHighlight}
+                onClearSectionHighlights={handleClearSectionHighlights}
               />
 
               {/* [교재 관련 추천 영상 & 과학 탐구 블로그 자료실] */}

@@ -1,4 +1,4 @@
-import { CustomWord } from '../types';
+import { CustomWord, TextHighlight } from '../types';
 
 export const APP_DRIVE_FOLDER_NAME = 'Chapter18_지구의대기_학습기록';
 
@@ -24,6 +24,7 @@ export interface LearningHistoryData {
 export interface DriveSyncPayload {
   history: LearningHistoryData;
   customVocabulary: CustomWord[];
+  textHighlights?: TextHighlight[];
 }
 
 /**
@@ -179,7 +180,18 @@ export async function syncDataToGoogleDrive(
     'application/json'
   );
 
-  // 3. Save readable report text file
+  // 3. Save text highlights JSON (if any)
+  if (payload.textHighlights) {
+    await uploadOrUpdateFile(
+      accessToken,
+      folderId,
+      'text_highlights.json',
+      JSON.stringify(payload.textHighlights, null, 2),
+      'application/json'
+    );
+  }
+
+  // 4. Save readable report text file
   const reportText = `[지구과학 Chapter 18: 지구의 대기 - 개인 학습 보고서]
 학생 이름 / 계정: ${payload.history.displayName || '학습자'} (${payload.history.userEmail})
 최종 동기화 일시: ${new Date().toLocaleString('ko-KR')}
@@ -201,6 +213,14 @@ ${payload.customVocabulary.map((w, idx) => `
 - 암기 여부: ${w.isMemorized ? '암기 완료 (O)' : '복습 필요 (X)'}
 ${w.contextSentence ? `- 본문 인용: "${w.contextSentence}"` : ''}
 `).join('\n') || '  (등록된 단어 없음)'}
+
+========================================
+3. 본문 중요 표시 (${payload.textHighlights?.length || 0}개 형광펜/밑줄)
+========================================
+${payload.textHighlights?.map((h, idx) => `
+[${idx + 1}] [${h.color.toUpperCase()}] "${h.text}"
+- 언어: ${h.lang === 'ko' ? '한국어 번역본' : '영어 원문'}
+`).join('\n') || '  (표시된 구절 없음)'}
 `;
 
   await uploadOrUpdateFile(
@@ -211,15 +231,20 @@ ${w.contextSentence ? `- 본문 인용: "${w.contextSentence}"` : ''}
     'text/plain'
   );
 
-  return { folderId, fileCount: 3 };
+  return { folderId, fileCount: payload.textHighlights ? 4 : 3 };
 }
 
 /**
- * Loads learning history and vocabulary from the user's Google Drive.
+ * Loads learning history, vocabulary, and highlights from the user's Google Drive.
  */
 export async function loadDataFromGoogleDrive(
   accessToken: string
-): Promise<{ history: LearningHistoryData | null; customVocabulary: CustomWord[] | null; folderId: string | null }> {
+): Promise<{ 
+  history: LearningHistoryData | null; 
+  customVocabulary: CustomWord[] | null; 
+  textHighlights: TextHighlight[] | null;
+  folderId: string | null; 
+}> {
   try {
     const folderId = await findOrCreateAppFolder(accessToken);
 
@@ -247,7 +272,19 @@ export async function loadDataFromGoogleDrive(
       }
     }
 
-    return { history, customVocabulary, folderId };
+    // Read text_highlights.json
+    let textHighlights: TextHighlight[] | null = null;
+    const highlightsFileId = await findFileInFolder(accessToken, folderId, 'text_highlights.json');
+    if (highlightsFileId) {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${highlightsFileId}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        textHighlights = await res.json();
+      }
+    }
+
+    return { history, customVocabulary, textHighlights, folderId };
   } catch (error) {
     console.error('Google Drive 데이터 로드 실패:', error);
     throw error;

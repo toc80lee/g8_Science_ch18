@@ -11,7 +11,9 @@ import {
   Globe, 
   Compass, 
   Share2,
-  Play
+  Play,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface RelatedMediaSectionProps {
@@ -21,6 +23,8 @@ interface RelatedMediaSectionProps {
 export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ section }) => {
   const mediaInfo = getMediaForSection(section.id);
   const [activeFilter, setActiveFilter] = useState<'all' | 'youtube' | 'agency'>('all');
+  // Initially collapsed so children can focus on textbook reading first
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const filteredResources = mediaInfo.resources.filter((res) => {
     if (activeFilter === 'youtube') return res.type === 'youtube';
@@ -29,20 +33,23 @@ export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ sectio
   });
 
   return (
-    <div className="my-8 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-blue-100 p-5 sm:p-7 shadow-xs">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-6 border-b border-gray-200">
+    <div className="my-8 bg-gradient-to-b from-slate-50 to-white rounded-2xl border border-blue-100 shadow-xs overflow-hidden transition-all duration-200">
+      {/* Header Banner - Clickable to toggle */}
+      <div 
+        onClick={() => setIsExpanded(prev => !prev)}
+        className="p-4 sm:p-6 flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:bg-blue-50/40 transition-colors select-none"
+      >
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-200">
+          <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-md shadow-red-200 shrink-0">
             <Youtube className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1">
               <h3 className="font-extrabold text-gray-900 text-base sm:text-lg">
                 아이를 위한 추천 영상 & 과학 탐구 자료실
               </h3>
               <span className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                EBS · NASA · 기상청
+                EBS · NASA · 기상청 ({mediaInfo.resources.length}개 자료)
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -51,42 +58,73 @@ export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ sectio
           </div>
         </div>
 
-        {/* Filter buttons */}
-        <div className="flex items-center space-x-1.5 bg-gray-100 p-1 rounded-lg text-xs font-semibold">
+        {/* Expand / Collapse Action Button */}
+        <div className="flex items-center space-x-2">
           <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
-              activeFilter === 'all'
-                ? 'bg-white text-gray-900 shadow-2xs font-bold'
-                : 'text-gray-600 hover:text-gray-900'
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(prev => !prev);
+            }}
+            className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+              isExpanded
+                ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                : 'bg-red-600 hover:bg-red-700 text-white shadow-xs'
             }`}
           >
-            전체 보기 ({mediaInfo.resources.length})
-          </button>
-          <button
-            onClick={() => setActiveFilter('youtube')}
-            className={`px-3 py-1 rounded-md transition-colors flex items-center space-x-1 cursor-pointer ${
-              activeFilter === 'youtube'
-                ? 'bg-white text-red-600 shadow-2xs font-bold'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Youtube className="w-3.5 h-3.5 text-red-600" />
-            <span>유튜브 영상</span>
-          </button>
-          <button
-            onClick={() => setActiveFilter('agency')}
-            className={`px-3 py-1 rounded-md transition-colors flex items-center space-x-1 cursor-pointer ${
-              activeFilter === 'agency'
-                ? 'bg-white text-blue-600 shadow-2xs font-bold'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5 text-blue-600" />
-            <span>과학 블로그·기관</span>
+            <span>{isExpanded ? '자료실 접기' : '추천 영상 및 자료실 펼치기'}</span>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4 animate-bounce" />
+            )}
           </button>
         </div>
       </div>
+
+      {/* Expanded Content View */}
+      {isExpanded && (
+        <div className="px-5 pb-6 sm:px-7 sm:pb-7 border-t border-gray-100 animate-in fade-in duration-200 pt-5">
+          {/* Filter Sub-toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-gray-100">
+            <div className="text-xs font-semibold text-gray-500">
+              분류별 필터:
+            </div>
+            <div className="flex items-center space-x-1.5 bg-gray-100 p-1 rounded-lg text-xs font-semibold">
+              <button
+                onClick={() => setActiveFilter('all')}
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+                  activeFilter === 'all'
+                    ? 'bg-white text-gray-900 shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                전체 보기 ({mediaInfo.resources.length})
+              </button>
+              <button
+                onClick={() => setActiveFilter('youtube')}
+                className={`px-3 py-1 rounded-md transition-colors flex items-center space-x-1 cursor-pointer ${
+                  activeFilter === 'youtube'
+                    ? 'bg-white text-red-600 shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Youtube className="w-3.5 h-3.5 text-red-600" />
+                <span>유튜브 영상</span>
+              </button>
+              <button
+                onClick={() => setActiveFilter('agency')}
+                className={`px-3 py-1 rounded-md transition-colors flex items-center space-x-1 cursor-pointer ${
+                  activeFilter === 'agency'
+                    ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5 text-blue-600" />
+                <span>과학 블로그·기관</span>
+              </button>
+            </div>
+          </div>
 
       {/* 1. Kid-friendly concept analogy card */}
       <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200 rounded-xl p-4 sm:p-5 mb-6">
@@ -205,6 +243,19 @@ export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ sectio
           </div>
         ))}
       </div>
+
+          {/* Bottom collapse button for easy access */}
+          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-center">
+            <button
+              onClick={() => setIsExpanded(false)}
+              className="flex items-center space-x-1.5 px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
+            >
+              <ChevronUp className="w-4 h-4" />
+              <span>추천 영상 & 자료실 접고 교재로 돌아가기</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
