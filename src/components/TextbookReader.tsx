@@ -57,7 +57,50 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageImages = getPageImagesForSection(section.pages);
-  const activeImage = pageImages[activePageIndex] || pageImages[0];
+  const safePageIndex = Math.min(activePageIndex, Math.max(0, pageImages.length - 1));
+  const activeImage = pageImages[safePageIndex] || pageImages[0];
+
+  // Reset active page index when section changes
+  React.useEffect(() => {
+    setActivePageIndex(0);
+  }, [section.id]);
+
+  // Support Left / Right arrow keys for page flipping in visual mode
+  React.useEffect(() => {
+    if (pageImages.length <= 1) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not flip if modal or input is focused
+      if (isAddModalOpen) return;
+      const targetTag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+      if (targetTag === 'input' || targetTag === 'textarea') return;
+
+      if (e.key === 'ArrowLeft') {
+        if (lightboxImage) {
+          const cIdx = pageImages.findIndex(img => img.pageNumber === lightboxImage.pageNumber);
+          if (cIdx > 0) {
+            setLightboxImage(pageImages[cIdx - 1]);
+            setActivePageIndex(cIdx - 1);
+          }
+        } else if (viewLayout === 'visual') {
+          setActivePageIndex(prev => Math.max(0, prev - 1));
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (lightboxImage) {
+          const cIdx = pageImages.findIndex(img => img.pageNumber === lightboxImage.pageNumber);
+          if (cIdx >= 0 && cIdx < pageImages.length - 1) {
+            setLightboxImage(pageImages[cIdx + 1]);
+            setActivePageIndex(cIdx + 1);
+          }
+        } else if (viewLayout === 'visual') {
+          setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [viewLayout, pageImages, isAddModalOpen, lightboxImage]);
 
   // Detect text selection in textbook
   const handleMouseUp = () => {
@@ -227,12 +270,14 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
           </div>
         </div>
 
-        {/* Sub toolbar: Language selector & Word add button */}
+        {/* Sub toolbar: Language selector & Word add button (hidden in visual mode) or Visual mode page controls */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 text-xs">
-          {/* Quick Page Preview Badges */}
+          {/* Quick Page Preview Badges / Selector */}
           <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-bold text-gray-500">포함 페이지:</span>
-            <div className="flex items-center space-x-1.5">
+            <span className="text-[11px] font-bold text-gray-500">
+              {viewLayout === 'visual' ? '교재 페이지 선택:' : '포함 페이지:'}
+            </span>
+            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
               {pageImages.map((img, idx) => (
                 <button
                   key={img.pageNumber}
@@ -240,123 +285,261 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     setActivePageIndex(idx);
                     setIsImageSectionExpanded(true);
                   }}
-                  className={`px-2 py-0.5 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
-                    activePageIndex === idx
-                      ? 'bg-blue-50 border-blue-400 text-blue-700 font-bold'
+                  className={`px-2.5 py-1 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
+                    safePageIndex === idx
+                      ? 'bg-blue-600 border-blue-600 text-white font-bold shadow-2xs'
                       : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                   }`}
+                  title={`p.${img.pageNumber} ${img.title}`}
                 >
-                  <ImageIcon className="w-3 h-3 text-blue-500" />
+                  <ImageIcon className={`w-3 h-3 ${safePageIndex === idx ? 'text-white' : 'text-blue-500'}`} />
                   <span>p.{img.pageNumber} 원본 삽화</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handleOpenAddModal('')}
-              className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
-            >
-              <Plus className="w-3 h-3" />
-              <span>단어 직접 등록</span>
-            </button>
+          {/* Text-mode controls: Only visible in text or split mode */}
+          {viewLayout !== 'visual' ? (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleOpenAddModal('')}
+                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>단어 직접 등록</span>
+              </button>
 
-            {/* Language Toggle */}
-            <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
-              <button
-                onClick={() => setLangMode('ko')}
-                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                한글 번역
-              </button>
-              <button
-                onClick={() => setLangMode('en')}
-                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                영어 원문
-              </button>
-              <button
-                onClick={() => setLangMode('side-by-side')}
-                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                  langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                한·영 대조
-              </button>
+              {/* Language Toggle */}
+              <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
+                <button
+                  onClick={() => setLangMode('ko')}
+                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                    langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  한글 번역
+                </button>
+                <button
+                  onClick={() => setLangMode('en')}
+                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                    langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  영어 원문
+                </button>
+                <button
+                  onClick={() => setLangMode('side-by-side')}
+                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                    langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  한·영 대조
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Visual-mode: Page navigation header controls (Next/Prev) */
+            pageImages.length > 1 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
+                  페이지 넘기기:
+                </span>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
+                    disabled={safePageIndex === 0}
+                    className="px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                    title="이전 페이지 (단축키: ←)"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>이전장</span>
+                  </button>
+                  <span className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded">
+                    {safePageIndex + 1} / {pageImages.length}
+                  </span>
+                  <button
+                    onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
+                    disabled={safePageIndex >= pageImages.length - 1}
+                    className="px-2.5 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                    title="다음 페이지 (단축키: →)"
+                  >
+                    <span>다음장</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )
+          )}
         </div>
       </div>
 
       {/* ======================================================== */}
-      {/* 1. VISUAL MODE: Full High-Res Textbook Page Gallery      */}
+      {/* 1. VISUAL MODE: Single-Page High-Res Viewer with Flipping */}
       {/* ======================================================== */}
-      {viewLayout === 'visual' && (
-        <div className="space-y-6">
-          {pageImages.map((pageImg) => (
-            <div 
-              key={pageImg.pageNumber}
-              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
-            >
-              <div className="p-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded">
-                    교재 p.{pageImg.pageNumber} 원본
-                  </span>
-                  <h4 className="font-bold text-gray-800 text-xs sm:text-sm truncate">
-                    {pageImg.title}
-                  </h4>
-                </div>
-                <button
-                  onClick={() => handleOpenLightbox(pageImg)}
-                  className="flex items-center space-x-1 text-xs font-bold text-blue-600 hover:text-blue-800 bg-white border border-gray-200 px-2.5 py-1 rounded shadow-2xs hover:bg-blue-50 transition-colors cursor-pointer"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span>크게 확대 보기</span>
-                </button>
+      {viewLayout === 'visual' && activeImage && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            {/* Top Page Header & Quick Flipping */}
+            <div className="p-3.5 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-1 rounded shadow-2xs">
+                  교재 p.{activeImage.pageNumber} 원본
+                </span>
+                <span className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                  {safePageIndex + 1} / {pageImages.length} 페이지
+                </span>
+                <h4 className="font-bold text-gray-800 text-xs sm:text-sm truncate max-w-xs sm:max-w-md">
+                  {activeImage.title}
+                </h4>
               </div>
 
-              {/* High-res Image Canvas */}
+              <div className="flex items-center space-x-2">
+                {/* Previous & Next Page buttons in header */}
+                {pageImages.length > 1 && (
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
+                      disabled={safePageIndex === 0}
+                      className="flex items-center space-x-1 text-xs font-bold text-gray-700 bg-white border border-gray-300 px-2.5 py-1 rounded shadow-2xs hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      title="이전 페이지 (단축키: ←)"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>이전장</span>
+                    </button>
+                    <button
+                      onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
+                      disabled={safePageIndex >= pageImages.length - 1}
+                      className="flex items-center space-x-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-300 px-2.5 py-1 rounded shadow-2xs hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      title="다음 페이지 (단축키: →)"
+                    >
+                      <span>다음장</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleOpenLightbox(activeImage)}
+                  className="flex items-center space-x-1 text-xs font-bold text-blue-600 hover:text-blue-800 bg-white border border-gray-200 px-2.5 py-1 rounded shadow-2xs hover:bg-blue-50 transition-colors cursor-pointer"
+                  title="초고화질 라이트박스 팝업 확대"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">크게 확대 보기</span>
+                </button>
+              </div>
+            </div>
+
+            {/* High-res Image Canvas with Overlay Navigation */}
+            <div className="relative bg-gray-100 flex items-center justify-center p-2 sm:p-5 group">
+              {/* Previous page overlay arrow button */}
+              {pageImages.length > 1 && safePageIndex > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActivePageIndex(prev => Math.max(0, prev - 1));
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center shadow-lg transition-all hover:scale-105 cursor-pointer backdrop-blur-xs"
+                  title={`이전 페이지 (p.${pageImages[safePageIndex - 1]?.pageNumber})`}
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              )}
+
+              {/* Next page overlay arrow button */}
+              {pageImages.length > 1 && safePageIndex < pageImages.length - 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1));
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center shadow-lg transition-all hover:scale-105 cursor-pointer backdrop-blur-xs"
+                  title={`다음 페이지 (p.${pageImages[safePageIndex + 1]?.pageNumber})`}
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              )}
+
+              {/* Main Image */}
               <div 
-                className="relative bg-gray-100 flex items-center justify-center p-2 sm:p-4 group cursor-zoom-in"
-                onClick={() => handleOpenLightbox(pageImg)}
+                className="cursor-zoom-in relative flex items-center justify-center"
+                onClick={() => handleOpenLightbox(activeImage)}
               >
                 <img
-                  src={pageImg.imageSrc}
-                  alt={pageImg.title}
-                  className="max-h-[850px] w-auto object-contain rounded-md shadow-md group-hover:scale-[1.01] transition-transform duration-200"
+                  src={activeImage.imageSrc}
+                  alt={activeImage.title}
+                  className="max-h-[850px] w-auto object-contain rounded-md shadow-md group-hover:scale-[1.008] transition-transform duration-200"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center pointer-events-none">
                   <div className="opacity-0 group-hover:opacity-100 bg-black/75 text-white text-xs px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-opacity shadow-lg">
                     <Eye className="w-4 h-4" />
                     <span>클릭하여 초고화질 확대 및 탐색</span>
                   </div>
                 </div>
               </div>
-
-              {/* Key illustrations breakdown */}
-              <div className="p-4 bg-blue-50/40 border-t border-gray-100 space-y-1.5">
-                <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide flex items-center space-x-1">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                  <span>이 페이지의 핵심 시각 자료 & 도표 가이드</span>
-                </div>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
-                  {pageImg.keyIllustrations.map((ill, iIdx) => (
-                    <li key={iIdx} className="flex items-start space-x-1.5 bg-white p-2 rounded border border-blue-100">
-                      <span className="text-blue-500 font-bold">✔</span>
-                      <span>{ill}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
-          ))}
+
+            {/* Bottom Page Navigation Bar: Child-friendly large flipping buttons */}
+            {pageImages.length > 1 && (
+              <div className="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                <button
+                  onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
+                  disabled={safePageIndex === 0}
+                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed font-bold text-xs sm:text-sm flex items-center space-x-1.5 shadow-2xs transition-all cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4 text-blue-600" />
+                  <span>
+                    이전 페이지 {safePageIndex > 0 ? `(p.${pageImages[safePageIndex - 1].pageNumber})` : ''}
+                  </span>
+                </button>
+
+                {/* Page indicator pills */}
+                <div className="flex items-center space-x-1.5 flex-wrap">
+                  {pageImages.map((p, idx) => (
+                    <button
+                      key={p.pageNumber}
+                      onClick={() => setActivePageIndex(idx)}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                        safePageIndex === idx
+                          ? 'bg-blue-600 text-white shadow-2xs ring-2 ring-blue-300'
+                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-blue-50'
+                      }`}
+                    >
+                      p.{p.pageNumber} ({idx + 1}/{pageImages.length})
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
+                  disabled={safePageIndex >= pageImages.length - 1}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold text-xs sm:text-sm flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer"
+                >
+                  <span>
+                    다음 페이지 {safePageIndex < pageImages.length - 1 ? `(p.${pageImages[safePageIndex + 1].pageNumber})` : ''}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            )}
+
+            {/* Key illustrations breakdown for the active page */}
+            <div className="p-4 bg-blue-50/40 border-t border-gray-100 space-y-1.5">
+              <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide flex items-center space-x-1">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>p.{activeImage.pageNumber}의 핵심 시각 자료 & 도표 가이드</span>
+              </div>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                {activeImage.keyIllustrations.map((ill, iIdx) => (
+                  <li key={iIdx} className="flex items-start space-x-1.5 bg-white p-2 rounded border border-blue-100">
+                    <span className="text-blue-500 font-bold">✔</span>
+                    <span>{ill}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
@@ -690,8 +873,44 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
             </div>
           </div>
 
-          {/* Centered Image with Zoom */}
-          <div className="flex-1 w-full max-w-5xl overflow-auto flex items-center justify-center p-2 rounded-xl bg-neutral-900/50">
+          {/* Centered Image with Zoom & Floating Page Arrows */}
+          <div className="relative flex-1 w-full max-w-5xl overflow-auto flex items-center justify-center p-2 rounded-xl bg-neutral-900/50">
+            {pageImages.length > 1 && (() => {
+              const currentLightboxIndex = pageImages.findIndex(img => img.pageNumber === lightboxImage.pageNumber);
+              return (
+                <>
+                  {currentLightboxIndex > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const prevImg = pageImages[currentLightboxIndex - 1];
+                        setLightboxImage(prevImg);
+                        setActivePageIndex(currentLightboxIndex - 1);
+                      }}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all hover:scale-110 cursor-pointer"
+                      title={`이전 페이지 (p.${pageImages[currentLightboxIndex - 1].pageNumber})`}
+                    >
+                      <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </button>
+                  )}
+                  {currentLightboxIndex < pageImages.length - 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const nextImg = pageImages[currentLightboxIndex + 1];
+                        setLightboxImage(nextImg);
+                        setActivePageIndex(currentLightboxIndex + 1);
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-black/70 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all hover:scale-110 cursor-pointer"
+                      title={`다음 페이지 (p.${pageImages[currentLightboxIndex + 1].pageNumber})`}
+                    >
+                      <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+
             <img
               src={lightboxImage.imageSrc}
               alt={lightboxImage.title}
