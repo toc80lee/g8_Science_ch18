@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, CheckCircle2, BookOpen, Layers, Award, User as UserIcon, CloudUpload, LogIn } from 'lucide-react';
+import { ExternalLink, CheckCircle2, BookOpen, Layers, Award, User as UserIcon, CloudUpload, LogIn, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { ChapterSection } from '../types';
 import { User } from 'firebase/auth';
 
@@ -15,6 +15,8 @@ interface HeaderProps {
   user: User | null;
   onOpenMyRecord: () => void;
   onGoogleSignIn: () => void;
+  isSidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,20 +29,46 @@ export const Header: React.FC<HeaderProps> = ({
   customWordsCount,
   user,
   onOpenMyRecord,
-  onGoogleSignIn
+  onGoogleSignIn,
+  isSidebarOpen = true,
+  onToggleSidebar,
 }) => {
   const completedCount = completedSectionIds.length;
   const progressPercent = Math.round((completedCount / totalSections) * 100);
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-200 text-sm">
-      <div className="flex items-center justify-between px-3 sm:px-4 h-14">
-        {/* Left: Brand logo & Title identical to Google AI Studio style */}
-        <div className="flex items-center space-x-3 cursor-pointer shrink-0" onClick={() => onSelectTopTab('home')}>
-          <div className="w-3.5 h-3.5 bg-blue-600 rounded-sm" />
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-gray-900 text-base tracking-tight">Everystudy with Josh</span>
-            <span className="text-gray-500 text-sm font-medium hidden sm:inline">Chapter 18 지구의 대기</span>
+      <div className="flex items-center justify-between px-2 sm:px-4 h-14">
+        {/* Left: Sidebar Toggle + Brand logo & Title */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2">
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className={`p-1.5 sm:p-2 rounded-lg border transition-all cursor-pointer flex items-center space-x-1 ${
+                isSidebarOpen
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                  : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+              title={isSidebarOpen ? "목차 접기 (학습 집중 모드)" : "목차 펼치기"}
+              aria-label="목차 토글"
+            >
+              {isSidebarOpen ? (
+                <PanelLeftClose className="w-4 h-4 shrink-0" />
+              ) : (
+                <PanelLeft className="w-4 h-4 shrink-0" />
+              )}
+              <span className="text-xs font-bold hidden sm:inline">
+                {isSidebarOpen ? "목차 접기" : "목차"}
+              </span>
+            </button>
+          )}
+
+          <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer shrink-0 pl-1" onClick={() => onSelectTopTab('home')}>
+            <div className="w-3.5 h-3.5 bg-blue-600 rounded-sm" />
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <span className="font-bold text-gray-900 text-sm sm:text-base tracking-tight">Everystudy with Josh</span>
+              <span className="text-gray-500 text-xs sm:text-sm font-medium hidden md:inline">Chapter 18 지구의 대기</span>
+            </div>
           </div>
         </div>
 

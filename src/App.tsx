@@ -7,6 +7,7 @@ import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { InteractiveCard } from './components/InteractiveCard';
 import { TextbookReader } from './components/TextbookReader';
+import { RelatedMediaSection } from './components/RelatedMediaSection';
 import { QuizView } from './components/QuizView';
 import { GlossaryPageView } from './components/GlossaryPageView';
 import { MyLearningRecordView } from './components/MyLearningRecordView';
@@ -33,7 +34,8 @@ import {
   BookOpen,
   Sparkles,
   CloudCheck,
-  AlertCircle
+  AlertCircle,
+  Menu
 } from 'lucide-react';
 
 export default function App() {
@@ -41,6 +43,11 @@ export default function App() {
   const [activeSectionId, setActiveSectionId] = useState<string>(allChapterSections[0].id);
   const [activeTopTab, setActiveTopTab] = useState<string>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Sidebar toggle state (defaults to true on desktop, false on mobile portrait for focus)
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 1024 : true;
+  });
   
   // View mode: 'study' | 'glossary' | 'my-record'
   const [currentViewMode, setCurrentViewMode] = useState<'study' | 'glossary' | 'my-record'>('study');
@@ -453,11 +460,13 @@ export default function App() {
         user={user}
         onOpenMyRecord={handleOpenMyRecord}
         onGoogleSignIn={handleGoogleSignIn}
+        isSidebarOpen={isSidebarOpen}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
       />
 
       {/* Main Container: Left Sidebar + Right Scrollable Main Content */}
-      <div className="flex-1 flex max-w-[1720px] w-full mx-auto">
-        {/* Left Sidebar */}
+      <div className="flex-1 flex max-w-[1720px] w-full mx-auto relative">
+        {/* Left Sidebar (Toggleable & Responsive drawer) */}
         <Sidebar
           sections={sections}
           activeSectionId={activeSectionId}
@@ -475,10 +484,12 @@ export default function App() {
           isGlossaryActive={currentViewMode === 'glossary'}
           activeGlossaryTab={glossaryTab}
           isMyRecordActive={currentViewMode === 'my-record'}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Right Main Content Canvas */}
-        <main className="flex-1 min-w-0 p-4 sm:p-8 lg:p-10 max-w-5xl mx-auto">
+        {/* Right Main Content Canvas (Expanded width for focused reading in portrait mode) */}
+        <main className={`flex-1 min-w-0 p-3.5 sm:p-6 lg:p-10 ${isSidebarOpen ? 'max-w-5xl' : 'max-w-6xl'} mx-auto transition-all duration-200`}>
           {/* ======================================================== */}
           {/* 1. In-Page My Learning Record & Drive View              */}
           {/* ======================================================== */}
@@ -637,6 +648,9 @@ export default function App() {
                 customWords={customWords}
               />
 
+              {/* [교재 관련 추천 영상 & 과학 탐구 블로그 자료실] */}
+              <RelatedMediaSection section={currentSection} />
+
               {/* [인터랙티브 실습 탐구 카드 (스플릿 뷰)] */}
               <div className="mt-10">
                 <InteractiveCard section={currentSection} />
@@ -726,6 +740,19 @@ export default function App() {
         currentTrack={currentTrack}
         onSelectTrack={(track) => setCurrentTrack(track)}
       />
+
+      {/* Floating Outline Toggle Button for Mobile Portrait Mode */}
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="lg:hidden fixed bottom-6 left-4 z-40 flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white px-3.5 py-2.5 rounded-full shadow-2xl border border-blue-400/40 text-xs font-bold transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-200"
+          title="단원 목차 및 검색 열기"
+          aria-label="단원 목차 열기"
+        >
+          <Menu className="w-4 h-4 shrink-0" />
+          <span>단원 목차</span>
+        </button>
+      )}
     </div>
   );
 }

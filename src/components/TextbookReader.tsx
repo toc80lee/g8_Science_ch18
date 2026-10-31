@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChapterSection, CustomWord } from '../types';
+import { getPageImagesForSection, PageImageInfo } from '../data/textbookPageImages';
 import { 
   BookOpen, 
   Languages, 
@@ -9,7 +10,17 @@ import {
   StickyNote, 
   Sparkles,
   X,
-  FileText
+  FileText,
+  Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Columns,
+  ChevronDown,
+  ExternalLink
 } from 'lucide-react';
 
 interface TextbookReaderProps {
@@ -23,7 +34,14 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   onAddCustomWord,
   customWords
 }) => {
+  // Main view mode: 'text' (default) | 'visual' (page gallery) | 'split' (side-by-side text & scan)
+  const [viewLayout, setViewLayout] = useState<'text' | 'visual' | 'split'>('text');
   const [langMode, setLangMode] = useState<'ko' | 'en' | 'side-by-side'>('ko');
+  
+  // Toggle for textbook original image verification section below text
+  const [isImageSectionExpanded, setIsImageSectionExpanded] = useState<boolean>(false);
+  
+  // Selected text for custom vocabulary
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionPos, setSelectionPos] = useState<{ x: number; y: number } | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -32,13 +50,19 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   const [modalContext, setModalContext] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Lightbox modal state for high-res textbook page viewing
+  const [lightboxImage, setLightboxImage] = useState<PageImageInfo | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [activePageIndex, setActivePageIndex] = useState<number>(0);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const pageImages = getPageImagesForSection(section.pages);
+  const activeImage = pageImages[activePageIndex] || pageImages[0];
 
   // Detect text selection in textbook
   const handleMouseUp = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
-      // Don't close if modal is open
       if (!isAddModalOpen) {
         setSelectionPos(null);
       }
@@ -65,7 +89,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
     setModalWord(word);
     setModalMeaning('');
     
-    // Find context sentence from textbook text if possible
     let foundContext = '';
     const allParagraphs = [...section.contentKo, ...section.contentEn];
     if (word) {
@@ -95,13 +118,17 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
     setToastMessage(`'${modalWord.trim()}' 단어가 나만의 용어 사전에 등록되었습니다!`);
     setTimeout(() => setToastMessage(null), 3000);
     
-    // Clear selection
     window.getSelection()?.removeAllRanges();
     setSelectionPos(null);
   };
 
   const isWordAlreadySaved = (word: string) => {
     return customWords.some(w => w.word.toLowerCase() === word.toLowerCase());
+  };
+
+  const handleOpenLightbox = (img: PageImageInfo) => {
+    setLightboxImage(img);
+    setZoomLevel(1);
   };
 
   return (
@@ -139,163 +166,558 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
         </div>
       )}
 
-      {/* Textbook Section Header matching high-grade layout */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg border border-gray-200 shadow-2xs">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <BookOpen className="w-4 h-4" />
+      {/* Top Header Card: Title + Mode Toggle Buttons */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center space-x-1.5">
+                <span>교재 원문 완전 수록 & 시각 자료실</span>
+                <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                  p. {section.pages.join(', ')}
+                </span>
+              </h3>
+              <p className="text-[11px] text-gray-500">
+                💡 교재 원본 고화질 삽화, 기온 곡선 그래프, 사진 및 한·영 텍스트를 한눈에 볼 수 있습니다.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center space-x-1.5">
-              <span>교재 원문 완전 수록</span>
-              <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">
-                Earth's Atmosphere p. {section.pages.join(', ')}
-              </span>
-            </h3>
-            <p className="text-[11px] text-gray-500">
-              💡 본문 글자를 마우스로 드래그하면 즉시 '나만의 용어 사전'에 등록할 수 있습니다.
-            </p>
+
+          {/* View Layout Selector */}
+          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg text-xs font-semibold">
+            <button
+              onClick={() => setViewLayout('text')}
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewLayout === 'text'
+                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="텍스트 번역 및 해설 중심 모드"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>텍스트 본문</span>
+            </button>
+            <button
+              onClick={() => setViewLayout('visual')}
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewLayout === 'visual'
+                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="원본 교재 고화질 사진 및 도표 중심 모드"
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+              <span>교재 원본 삽화 ({pageImages.length}장)</span>
+            </button>
+            <button
+              onClick={() => setViewLayout('split')}
+              className={`hidden md:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                viewLayout === 'split'
+                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="텍스트 번역과 원본 삽화를 나란히 배치"
+            >
+              <Columns className="w-3.5 h-3.5 text-emerald-600" />
+              <span>나란히 분할 보기</span>
+            </button>
           </div>
         </div>
 
-        {/* Controls: Language toggle & Quick Add Word button */}
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => handleOpenAddModal('')}
-            className="flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>단어 직접 등록</span>
-          </button>
+        {/* Sub toolbar: Language selector & Word add button */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 text-xs">
+          {/* Quick Page Preview Badges */}
+          <div className="flex items-center space-x-2">
+            <span className="text-[11px] font-bold text-gray-500">포함 페이지:</span>
+            <div className="flex items-center space-x-1.5">
+              {pageImages.map((img, idx) => (
+                <button
+                  key={img.pageNumber}
+                  onClick={() => {
+                    setActivePageIndex(idx);
+                    setIsImageSectionExpanded(true);
+                  }}
+                  className={`px-2 py-0.5 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
+                    activePageIndex === idx
+                      ? 'bg-blue-50 border-blue-400 text-blue-700 font-bold'
+                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <ImageIcon className="w-3 h-3 text-blue-500" />
+                  <span>p.{img.pageNumber} 원본 삽화</span>
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <div className="flex items-center space-x-1 border border-gray-300 rounded-md bg-gray-50 p-0.5 text-xs">
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => setLangMode('ko')}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
+              onClick={() => handleOpenAddModal('')}
+              className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
             >
-              한글 번역
+              <Plus className="w-3 h-3" />
+              <span>단어 직접 등록</span>
             </button>
-            <button
-              onClick={() => setLangMode('en')}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              영어 원문
-            </button>
-            <button
-              onClick={() => setLangMode('side-by-side')}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              한·영 대조
-            </button>
+
+            {/* Language Toggle */}
+            <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
+              <button
+                onClick={() => setLangMode('ko')}
+                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                  langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                한글 번역
+              </button>
+              <button
+                onClick={() => setLangMode('en')}
+                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                  langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                영어 원문
+              </button>
+              <button
+                onClick={() => setLangMode('side-by-side')}
+                className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
+                  langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                한·영 대조
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Text Content Box */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5 sm:p-7 shadow-xs">
-        {langMode === 'side-by-side' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
-            {/* Left: Korean */}
-            <div className="space-y-4 pr-0 lg:pr-4">
-              <div className="flex items-center justify-between text-xs font-bold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1.5">
-                <span>한국어 정밀 번역</span>
-                <span className="text-[10px] text-gray-400 font-normal">단어 드래그로 사전 추가 가능</span>
+      {/* ======================================================== */}
+      {/* 1. VISUAL MODE: Full High-Res Textbook Page Gallery      */}
+      {/* ======================================================== */}
+      {viewLayout === 'visual' && (
+        <div className="space-y-6">
+          {pageImages.map((pageImg) => (
+            <div 
+              key={pageImg.pageNumber}
+              className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+            >
+              <div className="p-3.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="bg-blue-600 text-white font-bold text-xs px-2 py-0.5 rounded">
+                    교재 p.{pageImg.pageNumber} 원본
+                  </span>
+                  <h4 className="font-bold text-gray-800 text-xs sm:text-sm truncate">
+                    {pageImg.title}
+                  </h4>
+                </div>
+                <button
+                  onClick={() => handleOpenLightbox(pageImg)}
+                  className="flex items-center space-x-1 text-xs font-bold text-blue-600 hover:text-blue-800 bg-white border border-gray-200 px-2.5 py-1 rounded shadow-2xs hover:bg-blue-50 transition-colors cursor-pointer"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>크게 확대 보기</span>
+                </button>
               </div>
-              <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed select-text">
-                {section.contentKo.map((p, i) => (
-                  <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
-                    {p}
-                  </p>
-                ))}
+
+              {/* High-res Image Canvas */}
+              <div 
+                className="relative bg-gray-100 flex items-center justify-center p-2 sm:p-4 group cursor-zoom-in"
+                onClick={() => handleOpenLightbox(pageImg)}
+              >
+                <img
+                  src={pageImg.imageSrc}
+                  alt={pageImg.title}
+                  className="max-h-[850px] w-auto object-contain rounded-md shadow-md group-hover:scale-[1.01] transition-transform duration-200"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 bg-black/75 text-white text-xs px-3 py-1.5 rounded-full flex items-center space-x-1.5 transition-opacity shadow-lg">
+                    <Eye className="w-4 h-4" />
+                    <span>클릭하여 초고화질 확대 및 탐색</span>
+                  </div>
+                </div>
               </div>
+
+              {/* Key illustrations breakdown */}
+              <div className="p-4 bg-blue-50/40 border-t border-gray-100 space-y-1.5">
+                <div className="text-[11px] font-bold text-blue-800 uppercase tracking-wide flex items-center space-x-1">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <span>이 페이지의 핵심 시각 자료 & 도표 가이드</span>
+                </div>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-700">
+                  {pageImg.keyIllustrations.map((ill, iIdx) => (
+                    <li key={iIdx} className="flex items-start space-x-1.5 bg-white p-2 rounded border border-blue-100">
+                      <span className="text-blue-500 font-bold">✔</span>
+                      <span>{ill}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 2. SPLIT MODE: Side-by-side Text & Scanned Image        */}
+      {/* ======================================================== */}
+      {viewLayout === 'split' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Left: Text reader (7 cols) */}
+          <div className="lg:col-span-7 bg-white rounded-xl border border-gray-200 p-5 shadow-xs space-y-4 select-text">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <span className="font-bold text-blue-700 text-xs uppercase">
+                {langMode === 'en' ? 'English Textbook Text' : '한국어 정밀 번역 본문'}
+              </span>
+              <span className="text-[11px] text-gray-400">단어 드래그로 단어장에 추가</span>
             </div>
 
-            {/* Right: English Original */}
-            <div className="space-y-4 pt-4 lg:pt-0 pl-0 lg:pl-6 font-serif">
-              <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1.5 font-sans">
-                <span>English Original Textbook</span>
-                <span className="text-[10px] text-gray-400 font-normal">Select word to save</span>
-              </div>
-              <div className="space-y-3.5 text-sm text-gray-700 leading-relaxed select-text">
-                {section.contentEn.map((p, i) => (
-                  <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
-                    {p}
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4 select-text">
-            <div className="space-y-3.5 text-sm sm:text-base text-gray-800 leading-relaxed">
-              {(langMode === 'ko' ? section.contentKo : section.contentEn).map((p, i) => (
-                <p 
-                  key={i} 
-                  className={`p-1 rounded hover:bg-blue-50/20 transition-colors ${langMode === 'en' ? 'font-serif text-justify' : 'text-justify'}`}
-                >
+            <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed max-h-[750px] overflow-y-auto pr-2">
+              {(langMode === 'en' ? section.contentEn : section.contentKo).map((p, i) => (
+                <p key={i} className="hover:bg-blue-50/30 p-1 rounded transition-colors text-justify">
                   {p}
                 </p>
               ))}
+
+              {section.sidebar && (
+                <div className="mt-4 border border-amber-300 bg-amber-50/70 rounded-lg p-3.5 text-xs text-amber-900 leading-relaxed">
+                  <div className="font-bold text-amber-950 mb-1">
+                    ★ 교재 심화: {section.sidebar.titleKo}
+                  </div>
+                  {section.sidebar.contentKo.map((p, i) => (
+                    <p key={i} className="mt-1">{p}</p>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Sidebar Callout Box if exists in textbook */}
-        {section.sidebar && (
-          <div className="mt-6 border border-amber-300 bg-amber-50/70 rounded-lg p-4 sm:p-5 select-text">
-            <div className="flex items-center justify-between pb-2 border-b border-amber-200 mb-3">
-              <div className="flex items-center space-x-2">
-                <span className="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded">
-                  교재 심화 탐구
-                </span>
-                <h4 className="font-bold text-amber-950 text-sm sm:text-base">
-                  {section.sidebar.titleKo}
-                </h4>
+          {/* Right: Scanned Textbook Visual Card (5 cols) */}
+          <div className="lg:col-span-5 bg-white rounded-xl border border-gray-200 p-4 shadow-xs sticky top-20">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs font-bold text-gray-900">교재 p.{activeImage?.pageNumber} 원본</span>
+                <span className="text-[10px] text-gray-400 font-mono">({activePageIndex + 1}/{pageImages.length})</span>
               </div>
-              <span className="text-xs text-amber-800/70 italic hidden sm:inline">
-                {section.sidebar.titleEn}
+              <button
+                onClick={() => activeImage && handleOpenLightbox(activeImage)}
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+                <span>확대 보기</span>
+              </button>
+            </div>
+
+            {/* Scanned Image Preview */}
+            {activeImage && (
+              <div 
+                className="relative bg-gray-50 border border-gray-100 rounded-lg overflow-hidden group cursor-pointer"
+                onClick={() => handleOpenLightbox(activeImage)}
+              >
+                <img
+                  src={activeImage.imageSrc}
+                  alt={activeImage.title}
+                  className="w-full max-h-[560px] object-contain mx-auto group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 bg-black/75 text-white text-xs px-3 py-1.5 rounded-full shadow-lg transition-opacity flex items-center space-x-1">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>클릭하여 전체화면</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Page switcher pagination */}
+            {pageImages.length > 1 && (
+              <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 text-xs">
+                <button
+                  onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
+                  disabled={activePageIndex === 0}
+                  className="p-1 rounded text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center space-x-1"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>이전 페이지</span>
+                </button>
+                <span className="font-mono text-gray-600 text-xs">
+                  p.{activeImage?.pageNumber}
+                </span>
+                <button
+                  onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
+                  disabled={activePageIndex === pageImages.length - 1}
+                  className="p-1 rounded text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex items-center space-x-1"
+                >
+                  <span>다음 페이지</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 3. TEXT MODE: Text First, then Optional Textbook Scans   */}
+      {/* ======================================================== */}
+      {viewLayout === 'text' && (
+        <div className="space-y-6">
+          {/* 1. Main Text Content Box (FIRST: Study with text first) */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-7 shadow-xs">
+            {langMode === 'side-by-side' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
+                {/* Left: Korean */}
+                <div className="space-y-4 pr-0 lg:pr-4">
+                  <div className="flex items-center justify-between text-xs font-bold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1.5">
+                    <span>한국어 정밀 번역</span>
+                    <span className="text-[10px] text-gray-400 font-normal">단어 드래그로 사전 추가 가능</span>
+                  </div>
+                  <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed select-text">
+                    {section.contentKo.map((p, i) => (
+                      <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right: English Original */}
+                <div className="space-y-4 pt-4 lg:pt-0 pl-0 lg:pl-6 font-serif">
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1.5 font-sans">
+                    <span>English Original Textbook</span>
+                    <span className="text-[10px] text-gray-400 font-normal">Select word to save</span>
+                  </div>
+                  <div className="space-y-3.5 text-sm text-gray-700 leading-relaxed select-text">
+                    {section.contentEn.map((p, i) => (
+                      <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 select-text">
+                <div className="space-y-3.5 text-sm sm:text-base text-gray-800 leading-relaxed">
+                  {(langMode === 'ko' ? section.contentKo : section.contentEn).map((p, i) => (
+                    <p 
+                      key={i} 
+                      className={`p-1 rounded hover:bg-blue-50/20 transition-colors ${langMode === 'en' ? 'font-serif text-justify' : 'text-justify'}`}
+                    >
+                      {p}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sidebar Callout Box if exists in textbook */}
+            {section.sidebar && (
+              <div className="mt-6 border border-amber-300 bg-amber-50/70 rounded-lg p-4 sm:p-5 select-text">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-200 mb-3">
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded">
+                      교재 심화 탐구
+                    </span>
+                    <h4 className="font-bold text-amber-950 text-sm sm:text-base">
+                      {section.sidebar.titleKo}
+                    </h4>
+                  </div>
+                  <span className="text-xs text-amber-800/70 italic hidden sm:inline">
+                    {section.sidebar.titleEn}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 text-xs sm:text-sm text-amber-900 leading-relaxed">
+                  {(langMode === 'en' ? section.sidebar.contentEn : section.sidebar.contentKo).map((p, i) => (
+                    <p key={i}>{p}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Handwritten Margin Notes from the scanned CamScanner PDF */}
+            {section.marginNotes && section.marginNotes.length > 0 && (
+              <div className="mt-6 border border-purple-200 bg-purple-50/60 rounded-lg p-4 select-text">
+                <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs sm:text-sm mb-2.5">
+                  <StickyNote className="w-4 h-4 text-purple-600" />
+                  <span>교재 여백 손글씨 필기 노트 (CamScanner Scanned Annotations)</span>
+                </div>
+                <div className="space-y-2">
+                  {section.marginNotes.map((note, idx) => (
+                    <div key={idx} className="bg-white p-3 rounded border border-purple-100 text-xs space-y-1">
+                      <div className="font-mono text-purple-800 font-medium">
+                        📝 "{note.originalText}"
+                      </div>
+                      <div className="text-gray-700">
+                        ➔ <strong>해석:</strong> {note.translation}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        위치: {note.context}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 2. 교재 원본 고화질 삽화 & 도표 확인 (SECOND: 학습 후 원본과 대조 확인용) */}
+          {pageImages.length > 0 && (
+            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-white border border-blue-200/80 rounded-xl p-4 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
+                    <ImageIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5">
+                      <span>교재 원본과 내용 확인하기</span>
+                      <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                        p. {section.pages.join(', ')} 고화질 삽화 & 도표 ({pageImages.length}장)
+                      </span>
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      텍스트로 먼저 공부한 후, 실제 교재의 컬러 사진, 기온 감률 곡선, 여백 필기와 대조해 보세요.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsImageSectionExpanded((prev) => !prev)}
+                    className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-blue-700 font-bold text-xs border border-blue-300 shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>{isImageSectionExpanded ? '교재 삽화 접기' : '교재 원본 삽화 확인하기'}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isImageSectionExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => setViewLayout('visual')}
+                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
+                  >
+                    <span>전체화면 갤러리</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Collapsible Image Grid: Shows only when child wants to cross-verify against the textbook */}
+              {isImageSectionExpanded && (
+                <div className="mt-4 pt-3.5 border-t border-blue-100 animate-in fade-in duration-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {pageImages.map((pImg) => (
+                      <div
+                        key={pImg.pageNumber}
+                        onClick={() => handleOpenLightbox(pImg)}
+                        className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-blue-400 transition-all cursor-pointer"
+                      >
+                        <div className="aspect-[3/4] overflow-hidden bg-gray-50">
+                          <img
+                            src={pImg.imageSrc}
+                            alt={pImg.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="p-2 bg-white border-t border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-blue-700">p.{pImg.pageNumber}</span>
+                            <span className="text-[10px] text-gray-400">클릭 확대</span>
+                          </div>
+                          <p className="text-[10px] text-gray-600 truncate mt-0.5">
+                            {pImg.title}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* Lightbox Modal: Ultra High-Res Zoomable Page Viewer      */}
+      {/* ======================================================== */}
+      {lightboxImage && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-between p-2 sm:p-4 animate-in fade-in duration-200">
+          {/* Top Bar */}
+          <div className="w-full max-w-5xl flex items-center justify-between text-white py-2 px-3 bg-black/50 rounded-xl mb-2">
+            <div className="flex items-center space-x-2">
+              <span className="bg-blue-600 text-white text-xs font-bold px-2.5 py-1 rounded">
+                p.{lightboxImage.pageNumber} 원본 교재
+              </span>
+              <span className="text-xs sm:text-sm font-semibold truncate text-gray-200">
+                {lightboxImage.title}
               </span>
             </div>
 
-            <div className="space-y-2.5 text-xs sm:text-sm text-amber-900 leading-relaxed">
-              {(langMode === 'en' ? section.sidebar.contentEn : section.sidebar.contentKo).map((p, i) => (
-                <p key={i}>{p}</p>
-              ))}
+            {/* Zoom Controls */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setZoomLevel(prev => Math.max(0.7, prev - 0.2))}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="축소"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-mono px-1">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+              <button
+                onClick={() => setZoomLevel(prev => Math.min(2.5, prev + 0.2))}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="확대"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setZoomLevel(1)}
+                className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                100%
+              </button>
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="p-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors ml-2 cursor-pointer"
+                title="닫기"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Handwritten Margin Notes from the scanned CamScanner PDF */}
-        {section.marginNotes && section.marginNotes.length > 0 && (
-          <div className="mt-6 border border-purple-200 bg-purple-50/60 rounded-lg p-4 select-text">
-            <div className="flex items-center space-x-2 text-purple-900 font-bold text-xs sm:text-sm mb-2.5">
-              <StickyNote className="w-4 h-4 text-purple-600" />
-              <span>교재 여백 손글씨 필기 노트 (CamScanner Scanned Annotations)</span>
-            </div>
-            <div className="space-y-2">
-              {section.marginNotes.map((note, idx) => (
-                <div key={idx} className="bg-white p-3 rounded border border-purple-100 text-xs space-y-1">
-                  <div className="font-mono text-purple-800 font-medium">
-                    📝 "{note.originalText}"
-                  </div>
-                  <div className="text-gray-700">
-                    ➔ <strong>해석:</strong> {note.translation}
-                  </div>
-                  <div className="text-[10px] text-gray-400">
-                    위치: {note.context}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {/* Centered Image with Zoom */}
+          <div className="flex-1 w-full max-w-5xl overflow-auto flex items-center justify-center p-2 rounded-xl bg-neutral-900/50">
+            <img
+              src={lightboxImage.imageSrc}
+              alt={lightboxImage.title}
+              style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.15s ease-out'
+              }}
+              className="max-h-[85vh] w-auto object-contain rounded-md shadow-2xl select-none"
+            />
           </div>
-        )}
-      </div>
+
+          {/* Bottom Bar: Key illustrations */}
+          <div className="w-full max-w-5xl py-2 px-4 bg-black/60 rounded-xl mt-2 text-white text-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-amber-400 font-bold">💡 삽화 설명:</span>
+              <span className="text-gray-300">
+                {lightboxImage.keyIllustrations.join(' · ')}
+              </span>
+            </div>
+            <span className="text-[11px] text-gray-400">
+              ESC 키 또는 우측 상단 닫기로 복귀
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Add Custom Word Modal */}
       {isAddModalOpen && (
