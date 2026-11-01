@@ -142,7 +142,7 @@ const Section18C_Quiz = {
 export const summaryAndTermsSection: ChapterSection = {
   id: 'sec-summary-terms',
   category: 'review',
-  numberBadge: '요약',
+  numberBadge: 'S',
   titleKo: 'Chapter 18 핵심 요약 (12포인트) & 21개 주요 용어 사전',
   titleEn: '18 Summary & Key Terms Glossary',
   breadcrumb: '18 · 총괄 · 요약 및 핵심 용어',
