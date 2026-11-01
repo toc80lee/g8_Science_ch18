@@ -5,16 +5,14 @@ import { keyTermsList } from './data/reviewAndGlossary';
 import { ChapterSection, CustomWord, TextHighlight } from './types';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
-import { InteractiveCard } from './components/InteractiveCard';
 import { TextbookReader } from './components/TextbookReader';
-import { RelatedMediaSection } from './components/RelatedMediaSection';
+import { ActivityTabStrip } from './components/ActivityTabStrip';
 import { QuizView } from './components/QuizView';
 import { GlossaryPageView } from './components/GlossaryPageView';
 import { MyLearningRecordView } from './components/MyLearningRecordView';
 import { DriveSyncModal } from './components/DriveSyncModal';
 import { TrackSelectModal } from './components/TrackSelectModal';
 import { LoginAssistModal } from './components/LoginAssistModal';
-import { SelfLearningVoiceJournal } from './components/SelfLearningVoiceJournal';
 import { 
   initAuth, 
   googleSignIn, 
@@ -728,7 +726,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* [교재 원문 완전 수록] - 상단 우선 배치 및 하이라이트/밑줄 기능 */}
+              {/* [교재 원문] - 상단 우선 배치 및 하이라이트/밑줄 기능 */}
               <TextbookReader
                 section={currentSection}
                 onAddCustomWord={handleAddCustomWord}
@@ -739,16 +737,8 @@ export default function App() {
                 onClearSectionHighlights={handleClearSectionHighlights}
               />
 
-              {/* [스스로 말하는 학습 녹음기 & AI 배운 내용 분석] (노란색 박스 - 교재 원본 바로 아래) */}
-              <SelfLearningVoiceJournal
-                section={currentSection}
-              />
-
-              {/* [교재 관련 추천 영상 & 과학 탐구 블로그 자료실] */}
-              <RelatedMediaSection section={currentSection} />
-
-              {/* [탐구 영어 & 과학 인터랙티브 실습 박스] */}
-              <InteractiveCard section={currentSection} />
+              {/* [활동 탭 스트립] - 셀프 학습 · 추천 자료 · 탐구 실습 3개 활동을 1개의 탭스트립으로 통합 */}
+              <ActivityTabStrip section={currentSection} />
 
               {/* If the current section is a quiz/review module, render interactive quiz directly! */}
               {currentSection.questions && currentSection.questions.length > 0 && (

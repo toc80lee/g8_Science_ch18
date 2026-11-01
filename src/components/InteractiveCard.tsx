@@ -5,9 +5,13 @@ import { RotateCcw, Copy, Check, FlaskConical, ChevronDown } from 'lucide-react'
 
 interface InteractiveCardProps {
   section: ChapterSection;
+  embedded?: boolean;
 }
 
-export const InteractiveCard: React.FC<InteractiveCardProps> = ({ section }) => {
+export const InteractiveCard: React.FC<InteractiveCardProps> = ({ 
+  section,
+  embedded = false 
+}) => {
   const spec = section.interactiveSpec;
   const [activeTabId, setActiveTabId] = useState<string>(spec.defaultTabId);
   const [copied, setCopied] = useState<boolean>(false);
@@ -28,57 +32,47 @@ export const InteractiveCard: React.FC<InteractiveCardProps> = ({ section }) => 
   };
 
   return (
-    <div className="my-5 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-white border border-emerald-200/80 rounded-xl p-4 shadow-2xs transition-all duration-200">
-      {/* Header Banner - Identical layout, font, sizing, and icon position to Box 1 & Box 2 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div 
-          onClick={() => setIsExpanded(prev => !prev)}
-          className="flex items-center space-x-3 cursor-pointer select-none group"
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(prev => !prev);
-            }}
-            className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
-            title={isExpanded ? '탐구 실습 접기' : '탐구 실습 확인하기 (클릭 시 펼침)'}
-            aria-label="탐구 실습 토글"
+    <div className={embedded ? "space-y-4" : "my-5 bg-gradient-to-r from-emerald-50/70 via-teal-50/50 to-white border border-emerald-200/80 rounded-xl p-4 shadow-2xs transition-all duration-200"}>
+      {/* Standalone Header Banner */}
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div 
+            onClick={() => setIsExpanded(prev => !prev)}
+            className="flex items-center space-x-3 cursor-pointer select-none group"
           >
-            <FlaskConical className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
-            <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-emerald-700 border border-emerald-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-3 h-3" />
-            </span>
-          </button>
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-emerald-700 transition-colors">
-              <span>탐구 영어 & 과학 인터랙티브 실습</span>
-              <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                {spec.missionNumber} · 탐구 실습 ({spec.tabs.length}개 모드)
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(prev => !prev);
+              }}
+              className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
+              title={isExpanded ? '탐구 실습 접기' : '탐구 실습 확인하기 (클릭 시 펼침)'}
+              aria-label="탐구 실습 토글"
+            >
+              <FlaskConical className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
+              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-emerald-700 border border-emerald-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-3 h-3" />
               </span>
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {spec.missionTitle} — 과학 모델링 코드와 시뮬레이션을 통해 직접 실험하고 탐구합니다.
-            </p>
+            </button>
+            <div>
+              <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-emerald-700 transition-colors">
+                <span>탐구 실습</span>
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  {spec.missionNumber} · 탐구 실습 ({spec.tabs.length}개 모드)
+                </span>
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {spec.missionTitle} — 과학 모델링 코드와 시뮬레이션을 통해 직접 실험하고 탐구합니다.
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Right Action / Toggle */}
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setIsExpanded(prev => !prev)}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
-          >
-            <span>{isExpanded ? '탐구 접기' : '탐구 열기'}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Expanded Content View */}
-      {isExpanded && (
-        <div className="mt-4 pt-3.5 border-t border-emerald-100 space-y-4 animate-in fade-in duration-200">
+      {(isExpanded || embedded) && (
+        <div className={embedded ? "space-y-4 animate-in fade-in duration-200" : "mt-4 pt-3.5 border-t border-emerald-100 space-y-4 animate-in fade-in duration-200"}>
           {/* Activity Card Sub-Header */}
           <div className="space-y-1.5 bg-white/70 p-3 rounded-lg border border-emerald-100">
             <div className="flex items-center space-x-2">

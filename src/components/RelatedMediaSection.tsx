@@ -21,9 +21,13 @@ import {
 
 interface RelatedMediaSectionProps {
   section: ChapterSection;
+  embedded?: boolean;
 }
 
-export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ section }) => {
+export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ 
+  section,
+  embedded = false 
+}) => {
   const mediaInfo = getMediaForSection(section.id);
   const [activeFilter, setActiveFilter] = useState<'all' | 'youtube' | 'agency'>('all');
   // Initially collapsed so children can focus on textbook reading first
@@ -50,57 +54,57 @@ export const RelatedMediaSection: React.FC<RelatedMediaSectionProps> = ({ sectio
   };
 
   return (
-    <div className="my-5 bg-gradient-to-r from-red-50/70 via-rose-50/50 to-white border border-red-200/80 rounded-xl p-4 shadow-2xs transition-all duration-200">
-      {/* Header Banner - Identical layout and sizing to Textbook Original box */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div 
-          onClick={() => setIsExpanded(prev => !prev)}
-          className="flex items-center space-x-3 cursor-pointer select-none group"
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(prev => !prev);
-            }}
-            className="w-10 h-10 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
-            title={isExpanded ? '추천 영상 및 자료실 접기' : '추천 영상 및 자료실 확인하기 (클릭 시 펼침)'}
-            aria-label="추천 영상 및 자료실 토글"
+    <div className={embedded ? "space-y-4" : "my-5 bg-gradient-to-r from-red-50/70 via-rose-50/50 to-white border border-red-200/80 rounded-xl p-4 shadow-2xs transition-all duration-200"}>
+      {/* Embedded Sub-header or Standalone Header Banner */}
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-red-100">
+          <p className="text-xs sm:text-sm text-gray-700 font-medium">
+            교재 원문 속 어려운 과학 개념을 친근한 영상과 검증된 과학 블로그로 시각화하여 배웁니다.
+          </p>
+          <span className="text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
+            EBS · NASA · 기상청 ({mediaInfo.resources.length}개 자료)
+          </span>
+        </div>
+      ) : (
+        /* Standalone Header Banner */
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div 
+            onClick={() => setIsExpanded(prev => !prev)}
+            className="flex items-center space-x-3 cursor-pointer select-none group"
           >
-            <Youtube className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
-            <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-red-700 border border-red-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-3 h-3" />
-            </span>
-          </button>
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-red-700 transition-colors">
-              <span>아이를 위한 추천 영상 & 과학 탐구 자료실</span>
-              <span className="text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
-                EBS · NASA · 기상청 ({mediaInfo.resources.length}개 자료)
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(prev => !prev);
+              }}
+              className="w-10 h-10 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
+              title={isExpanded ? '추천 자료 접기' : '추천 자료 확인하기 (클릭 시 펼침)'}
+              aria-label="추천 자료 토글"
+            >
+              <Youtube className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
+              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-red-700 border border-red-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-3 h-3" />
               </span>
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
-              교재 원문 속 어려운 과학 개념을 친근한 영상과 검증된 과학 블로그로 시각화하여 배웁니다.
-            </p>
+            </button>
+            <div>
+              <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-red-700 transition-colors">
+                <span>추천 자료</span>
+                <span className="text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                  EBS · NASA · 기상청 ({mediaInfo.resources.length}개 자료)
+                </span>
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">
+                교재 원문 속 어려운 과학 개념을 친근한 영상과 검증된 과학 블로그로 시각화하여 배웁니다.
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Right Action / Toggle */}
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setIsExpanded(prev => !prev)}
-            className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
-          >
-            <span>{isExpanded ? '자료실 접기' : '자료실 열기'}</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Expanded Content View */}
-      {isExpanded && (
-        <div className="mt-4 pt-3.5 border-t border-red-100 animate-in fade-in duration-200">
+      {(isExpanded || embedded) && (
+        <div className={embedded ? "space-y-4 animate-in fade-in duration-200" : "mt-4 pt-3.5 border-t border-red-100 animate-in fade-in duration-200"}>
           {/* Filter Sub-toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-gray-100">
             <div className="text-xs font-semibold text-gray-500">

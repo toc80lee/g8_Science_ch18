@@ -503,8 +503,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대기 오염(Air pollution)이란 무엇이며, 왜 그것이 심각한 문제인가요?",
     questionEn: "What is air pollution? Why is it a problem?",
-    correctAnswer: "호흡을 방해하거나 유해한 기체 또는 미립자가 공기 중으로 유입되는 현상으로, 전 세계에서 매년 550만 명의 조기 사망을 초래하기 때문",
-    explanation: "도시 스모그와 유독 물질은 호흡기 및 심혈관 질환을 유발하여 사망에 이르게 합니다.",
+    correctAnswer: "호흡을 방해하거나 유해한 기체 또는 미립자가 공기 중으로 유입되는 현상으로, 전 세계에서 매년 550만 명의 조기 사망을 초래하기 때문에 심각한 문제입니다.",
+    correctAnswerEn: "Air pollution is the introduction of harmful gases or tiny particles into the air. It is a serious problem because it harms living things and causes about 5.5 million early deaths worldwide each year.",
+    explanation: "도시 스모그와 공장 매연 등 유독 물질은 호흡기 및 심혈관 질환을 유발하여 매년 수백만 명의 목숨을 앗아갑니다.",
+    explanationEn: "Air pollution comes from burning fossil fuels in cars and factories. Breathing in toxic smog damages lungs and hearts, making it a critical health issue.",
+    evidenceQuoteEn: "Air pollution occurs when harmful gases or tiny particles enter the atmosphere... It causes about 5.5 million premature deaths worldwide each year.",
+    evidenceQuoteKo: "대기 오염은 유해 기체나 미립자가 대기로 유입될 때 발생하며, 매년 전 세계에서 약 550만 명의 조기 사망을 초래합니다.",
     page: 429
   },
   {
@@ -513,8 +517,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "essay",
     question: "지구의 대기는 태양계의 다른 행성(목성, 금성, 화성, 달)과 어떻게 다르며, 이것이 왜 중요한가요?",
     questionEn: "What makes Earth's atmosphere different from those surrounding other bodies in our solar system? Why is this significant?",
-    correctAnswer: "다른 행성은 수소/헬륨(목성)이나 유독한 고농도 CO2/황산(금성, 화성), 진공(달)인 반면, 지구는 78% 질소와 21% 산소로 생명체가 호흡하고 살아가기에 완벽하게 조성되어 있음",
-    explanation: "지구의 독특한 대기는 생명체 거주를 위한 창조주의 정밀한 설계(이사야 45:18)를 증거합니다.",
+    correctAnswer: "다른 행성은 유독한 고농도 이산화탄소(금성, 화성)나 수소/헬륨(목성), 또는 공기가 없는 진공(달)인 반면, 지구는 78% 질소와 21% 산소로 생명체가 호흡하고 살아가기에 완벽한 균형을 이룹니다.",
+    correctAnswerEn: "Other planets have toxic atmospheres of heavy CO2 (Venus, Mars), hydrogen and helium (Jupiter), or no air at all (the Moon). Earth is unique because it has the perfect blend of 78% nitrogen and 21% oxygen, which is essential for life.",
+    explanation: "지구의 독특한 대기 성분비는 생명체가 안전하게 번성할 수 있도록 조성된 창조주의 정밀한 설계를 증명합니다.",
+    explanationEn: "Earth is the only known planet designed with breathable air, shielding layers, and ideal pressure for living creatures to thrive.",
+    evidenceQuoteEn: "Earth's atmosphere is completely unique in having 21% oxygen and 78% nitrogen, uniquely suited to support abundant life.",
+    evidenceQuoteKo: "지구 대기는 21%의 산소와 78%의 질소를 지니며, 풍성한 생명을 지탱하기에 독보적으로 알맞게 조성되어 있습니다.",
     page: 429
   },
   {
@@ -523,8 +531,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대기의 기원에 대한 두 가지 이론(진화론적 오랜 지구 vs 성경적 젊은 지구)의 기초가 되는 전제를 한 단어로 각각 서술하세요.",
     questionEn: "In one word for each, state the underlying basis for the two theories of the atmosphere's origin.",
-    correctAnswer: "오랜 지구: 우연/진화(Evolution / Chance) / 젊은 지구: 창조/설계(Creation / Design)",
-    explanation: "오랜 지구는 자연주의적 진화에 기반하며, 젊은 지구는 성경적 창조에 기반합니다.",
+    correctAnswer: "오랜 지구: 진화 (Evolution, 또는 우연) / 젊은 지구: 창조 (Creation, 또는 설계)",
+    correctAnswerEn: "Old-Earth: Evolution (or Chance) / Young-Earth: Creation (or Design).",
+    explanation: "오랜 지구 관점은 자연주의적 진화와 수십억 년의 시간에 기초하며, 젊은 지구 관점은 창조 주간 둘째 날 하나님의 지혜로운 직접 설계를 기초로 합니다.",
+    explanationEn: "The old-earth view relies on naturalistic evolution over billions of years, while the young-earth view trusts in God's purposeful creation on Day 2.",
+    evidenceQuoteEn: "The atmosphere did not evolve over billions of years; God created it on the second day of the Creation Week to support life on Earth.",
+    evidenceQuoteKo: "대기는 수십억 년에 걸쳐 진화한 것이 아니며, 하나님께서 창조 주간 둘째 날에 지구 생명체를 지탱하도록 창조하셨습니다.",
     page: 430
   },
   {
@@ -533,8 +545,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "오랜 지구 과학자들은 대기 중의 산소가 어디에서 처음 비롯되었다고 주장하나요?",
     questionEn: "From where do old-earth scientists think the oxygen in our atmosphere first came?",
-    correctAnswer: "자외선에 의한 수증기 분해 및 광합성을 하는 시아노박테리아(Cyanobacteria, 남세균)의 진화",
-    explanation: "초기 지구에는 유리 산소가 없었으며 시아노박테리아의 광합성 활동으로 산소가 축적되었다고 주장합니다.",
+    correctAnswer: "광합성을 하여 산소를 배출하는 초기 단세포 생물인 시아노박테리아(Cyanobacteria, 남세균)의 진화로부터 비롯되었다고 주장합니다.",
+    correctAnswerEn: "They believe oxygen came from early photosynthetic organisms called cyanobacteria (blue-green algae) that slowly produced oxygen over billions of years.",
+    explanation: "초기 원시 대기에는 산소가 없었으며, 시아노박테리아의 광합성 작용으로 약 24억 년 전부터 대기 중에 산소가 모이기 시작했다고 봅니다.",
+    explanationEn: "In their model, the early Earth had a toxic, oxygen-free atmosphere until cyanobacteria evolved and began producing oxygen through photosynthesis.",
+    evidenceQuoteEn: "Old-earth geologists believe that cyanobacteria evolved to produce oxygen through photosynthesis, gradually transforming the atmosphere.",
+    evidenceQuoteKo: "오랜 지구 지질학자들은 시아노박테리아가 광합성을 통해 산소를 생산하도록 진화하여 대기를 점차 변화시켰다고 믿습니다.",
     page: 430
   },
   {
@@ -543,8 +559,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대기 중 기체들의 부피 백분율을 비교하는 막대그래프를 그릴 때, 주요 성분의 비율은 어떻게 되나요?",
     questionEn: "Create a bar graph that compares the percentage by volume of the gases in the atmosphere.",
-    correctAnswer: "질소(N2) 약 78%, 산소(O2) 약 21%, 아르곤 및 기타 기체 약 1%",
-    explanation: "질소 78%, 산소 21%, 아르곤 0.93%, 기타 미량 기체 0.07%로 구성됩니다.",
+    correctAnswer: "질소(N2) 약 78%, 산소(O2) 약 21%, 그리고 아르곤과 이산화탄소 등 기타 기체가 나머지 1%를 차지합니다.",
+    correctAnswerEn: "Nitrogen (N2) is about 78%, Oxygen (O2) is about 21%, and all other gases (mainly argon and CO2) make up the remaining 1%.",
+    explanation: "질소는 산소를 안전한 비율로 희석하여 산불이 걷잡을 수 없이 번지는 것을 막고, 산소는 호흡에 필수적인 양을 공급합니다.",
+    explanationEn: "Nitrogen dilutes oxygen to a safe level so fires do not burn out of control, while providing just enough oxygen for living things to breathe.",
+    evidenceQuoteEn: "Earth's atmosphere in the homosphere is composed of about 78% nitrogen, 21% oxygen, and 1% other gases (mostly argon).",
+    evidenceQuoteKo: "동질권 내 지구 대기는 약 78%의 질소, 21%의 산소, 그리고 1%의 기타 기체(대부분 아르곤)로 구성됩니다.",
     page: 433
   },
   {
@@ -553,8 +573,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "이질권(Heterosphere)에서 더 가벼운 기체들이 상층부에 위치하는 이유는 무엇인가요?",
     questionEn: "Why are lighter gases higher up in the atmosphere?",
-    correctAnswer: "고도 80km 이상에서는 바람이 거의 없어 기체들이 고르게 섞이지 못하고 중력과 원자량에 따라 분리되기 때문",
-    explanation: "가벼운 기체(헬륨, 수소)는 부력과 낮은 원자량으로 인해 상층에 머물고 무거운 기체는 하부에 침강합니다.",
+    correctAnswer: "고도 80km 이상의 이질권에서는 기체를 섞어주는 바람이 거의 없어, 중력과 원자량 차이에 의해 가벼운 기체(헬륨, 수소)가 무거운 기체 위로 뜨기 때문입니다.",
+    correctAnswerEn: "Because above 80 km, there are almost no winds to mix the gases. Gravity causes heavier gases to sink while lighter gases (helium and hydrogen) float to the top.",
+    explanation: "바람이 없는 고요한 층에서는 무거운 산소와 질소가 아래로 가라앉고 가벼운 헬륨과 수소가 층상 구조로 상층부에 머물게 됩니다.",
+    explanationEn: "Without winds mixing the air, gases separate by atomic weight: heavier nitrogen and oxygen stay lower, while lightweight helium and hydrogen rise.",
+    evidenceQuoteEn: "In the heterosphere, without winds to mix them, gases settle into distinct layers according to their atomic weights.",
+    evidenceQuoteKo: "이질권에서는 바람이 기체를 섞어주지 않기 때문에, 기체들이 원자량에 따라 뚜렷한 층으로 분리되어 자리 잡습니다.",
     page: 433
   },
   {
@@ -563,8 +587,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "이질권(Heterosphere, 80km 이상)과 겹치는 온도 대기층은 어느 층들인가요?",
     questionEn: "Use Figure 18-6 to find what temperature layers lie in the heterosphere.",
-    correctAnswer: "열권 (Thermosphere)과 외기권 (Exosphere)",
-    explanation: "동질권(0~80km)은 대류권, 성층권, 중간권을 포함하며, 이질권은 80km 이상의 열권과 외기권을 포함합니다.",
+    correctAnswer: "열권(Thermosphere)과 외기권(Exosphere)이 이질권 구역에 위치합니다.",
+    correctAnswerEn: "The thermosphere and the exosphere lie within the heterosphere.",
+    explanation: "동질권(0~80km)은 대류권, 성층권, 중간권을 포함하고, 그 위의 이질권(80km 이상)은 열권과 외기권을 아우릅니다.",
+    explanationEn: "The homosphere contains the troposphere, stratosphere, and mesosphere. Above 80 km, the heterosphere covers the thermosphere and exosphere.",
+    evidenceQuoteEn: "The heterosphere begins around 80 km, which corresponds to the thermosphere and continues upward into the exosphere.",
+    evidenceQuoteKo: "이질권은 약 80km 부근에서 시작되며, 이는 열권에 해당하고 위쪽의 외기권으로 이어집니다.",
     page: 435
   },
   {
@@ -573,8 +601,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "기온 감률(Lapse rate)이란 무엇인가요?",
     questionEn: "What is a lapse rate?",
-    correctAnswer: "대류권에서 고도가 1km 상승할 때마다 기온이 약 6.5°C씩 낮아지는 비율",
-    explanation: "고도 증가에 따른 정상적인 기온 하강 비율을 의미합니다.",
+    correctAnswer: "대류권에서 고도가 1km 높아질 때마다 기온이 일정하게 약 6.5°C씩 낮아지는 비율입니다.",
+    correctAnswerEn: "It is the steady rate at which temperature drops as altitude increases in the troposphere (about 6.5°C per kilometer).",
+    explanation: "지표면에서 방출되는 열로 인해 아래쪽 공기가 먼저 데워지므로, 산 정상처럼 높은 곳으로 올라갈수록 공기가 차가워집니다.",
+    explanationEn: "Since the ground warms the lower air, the air cools off as you climb higher, which is why high mountains have chilly summits.",
+    evidenceQuoteEn: "The temperature in the troposphere drops about 6.5°C for every kilometer of altitude gained. This steady change is called the lapse rate.",
+    evidenceQuoteKo: "대류권의 기온은 고도가 1km 높아질 때마다 약 6.5°C씩 낮아집니다. 이러한 일정한 변화 비율을 기온 감률이라고 합니다.",
     page: 433
   },
   {
@@ -583,8 +615,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대류권계면(Tropopause) 위의 성층권에서 대기 온도는 어떻게 변하나요?",
     questionEn: "What happens to atmospheric temperature above the tropopause in the stratosphere?",
-    correctAnswer: "오존층이 자외선을 흡수하여 고도가 높아질수록 기온이 약 0°C까지 상승함",
-    explanation: "오존 분자의 자외선 흡수로 열이 발생하여 성층권은 고도에 따라 기온이 역전되어 상승합니다.",
+    correctAnswer: "기온 하강이 멈추고 반대로 상승하기 시작하여, 영하 약 55°C에서 성층권 상단에서는 약 0°C까지 따뜻해집니다.",
+    correctAnswerEn: "The temperature stops falling and begins to rise, warming up from about -55°C to around 0°C at the top of the stratosphere.",
+    explanation: "성층권의 오존층이 태양의 유해 자외선(UV)을 흡수하여 열에너지로 변환하기 때문에 고도가 높아질수록 기온이 상승합니다.",
+    explanationEn: "Ozone molecules in the stratosphere absorb harmful ultraviolet rays from sunlight and turn that energy into heat.",
+    evidenceQuoteEn: "In the stratosphere, temperatures increase with altitude because ozone molecules absorb ultraviolet energy from the sun.",
+    evidenceQuoteKo: "성층권에서는 오존 분자가 태양의 자외선 에너지를 흡수하기 때문에 고도에 따라 기온이 상승합니다.",
     page: 434
   },
   {
@@ -593,8 +629,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "essay",
     question: "\"우리가 지구의 대기를 연구할 때, 피조물을 향한 하나님의 돌보심에 찬양하게 된다\"는 진술을 뒷받침하여 서술하세요.",
     questionEn: "Defend the following statement: 'When we study the earth's atmosphere, we are led to praise God for His care for His creatures.'",
-    correctAnswer: "질소 희석으로 화재 방지, 산소로 호흡 유지, 오존층으로 자외선 차단, 전리층과 자기권으로 태양풍과 우주선 방어, 온실효과로 온화한 기온 유지 등 완벽한 다층 방어 체계를 갖추었기 때문",
-    explanation: "대기의 모든 물리화학적 특성이 생명체 번성을 위해 정밀하게 조정되어 있음을 보여줍니다.",
+    correctAnswer: "오존층의 자외선 차단, 전리층과 자기권의 우주 방사선 방어, 질소의 산소 희석으로 화재 방지, 온실 효과의 온화한 보온 등 다층 방어막이 생명체를 안전하게 지켜주기 때문입니다.",
+    correctAnswerEn: "Earth's atmosphere acts as a multi-layered shield: ozone blocks deadly UV rays, the magnetosphere deflects space radiation, nitrogen dilutes oxygen to prevent fires, and the greenhouse effect keeps us warm.",
+    explanation: "대기의 모든 물리화학적 특성이 생명체가 번성할 수 있도록 보이지 않는 거대한 방패처럼 조화롭게 맞춰져 있습니다.",
+    explanationEn: "Every atmospheric layer works like an invisible armor designed specifically to protect living creatures from harsh space conditions.",
+    evidenceQuoteEn: "The atmosphere acts as a multi-layered shield designed to sustain life, reflecting God's providence and care.",
+    evidenceQuoteKo: "대기는 생명을 유지하도록 설계된 다층 방패 역할을 하며, 피조물을 향한 하나님의 섭리와 돌보심을 보여줍니다.",
     page: 431
   },
   {
@@ -603,8 +643,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "탄소 순환에서 핵심적인 탄소 저장소는 어디인가요?",
     questionEn: "What is the key carbon reservoir in the carbon cycle?",
-    correctAnswer: "대기 중의 이산화탄소 (Atmospheric CO2)와 해양 및 토양",
-    explanation: "대기 중의 CO2는 식물 광합성과 생물 호흡의 핵심 교환 매개체입니다.",
+    correctAnswer: "대기 중의 이산화탄소(CO2)이며, 해양, 생물체, 그리고 토양과 암석 또한 거대한 저장소입니다.",
+    correctAnswerEn: "Atmospheric carbon dioxide (CO2), along with the oceans, plants, animals, and soil/rocks.",
+    explanation: "탄소는 광합성과 호흡, 유기물 분해를 통해 대기와 생태계 사이를 끊임없이 순환하며 생명 활동을 지탱합니다.",
+    explanationEn: "Carbon constantly flows between the air and living things through photosynthesis and breathing, keeping life balanced.",
+    evidenceQuoteEn: "The largest and most active reservoir of carbon for living things is atmospheric carbon dioxide.",
+    evidenceQuoteKo: "생명체에게 가장 중요하고 활발한 탄소 저장소는 대기 중의 이산화탄소입니다.",
     page: 437
   },
   {
@@ -613,8 +657,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "식물이 흡수할 수 있는 유기 또는 고정 질소(Fixed nitrogen)는 자연계에서 어디로부터 오는가요?",
     questionEn: "Where does organic or fixed nitrogen come from?",
-    correctAnswer: "토양 및 콩과 식물 뿌리의 질소 고정 박테리아와 대기 중의 번개 방전",
-    explanation: "질소 고정 세균과 번개가 N2 삼중결합을 분해하여 암모니아와 질산염 화합물을 만듭니다.",
+    correctAnswer: "토양 및 콩과 식물 뿌리의 질소 고정 박테리아와 대기 중의 강력한 번개 방전으로부터 옵니다.",
+    correctAnswerEn: "From nitrogen-fixing bacteria in the soil (and plant root nodules) and from lightning strikes in the atmosphere.",
+    explanation: "식물은 공기 중의 질소 분자(N2)를 직접 흡수할 수 없으므로, 박테리아와 번개가 삼중결합을 분해하여 식물이 흡수할 수 있는 질산염으로 만들어줍니다.",
+    explanationEn: "Plants cannot breathe in pure nitrogen gas directly. Special bacteria and high-energy lightning break nitrogen apart into usable plant food.",
+    evidenceQuoteEn: "Nitrogen fixation is performed by special bacteria in the soil and by lightning discharges in the atmosphere.",
+    evidenceQuoteKo: "질소 고정은 토양 속의 특수한 박테리아와 대기 중의 번개 방전에 의해 수행됩니다.",
     page: 438
   },
   {
@@ -623,8 +671,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "오존층과 전리층은 각각 어떤 온도 대기층과 겹치나요?",
     questionEn: "Using Figure 18-6, identify which temperature layers overlap the ozone layer and the ionosphere.",
-    correctAnswer: "오존층은 성층권(Stratosphere)에 위치하며, 전리층은 열권(Thermosphere, 75~500km)과 겹침",
-    explanation: "오존층은 20~50km의 성층권, 전리층은 75~500km의 열권 하부에 형성됩니다.",
+    correctAnswer: "오존층은 성층권(약 20~50km)에 위치하며, 전리층은 열권(약 75~500km)과 겹칩니다.",
+    correctAnswerEn: "The ozone layer is in the stratosphere (about 20–50 km). The ionosphere overlaps the thermosphere (about 75–500 km).",
+    explanation: "오존층은 성층권에서 자외선을 흡수하고, 전리층은 열권의 희박한 기체가 이온화되어 라디오 전파를 반사합니다.",
+    explanationEn: "Ozone traps UV light in the stratosphere, while ionized gas particles in the thermosphere bounce radio communication waves around the globe.",
+    evidenceQuoteEn: "The ozone layer lies within the stratosphere, while the ionosphere extends through the thermosphere.",
+    evidenceQuoteKo: "오존층은 성층권 내에 위치하고, 전리층은 열권을 통과하여 넓게 펼쳐져 있습니다.",
     page: 435
   },
   {
@@ -633,8 +685,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대기의 특수 구역 중 가시광선 파장을 완전히 차단하거나 흡수, 반사하는 층이 있나요? 우리는 이를 어떻게 알 수 있나요?",
     questionEn: "Do any of the special layers of the atmosphere completely block, absorb, or reflect visual light wavelengths? How do we know?",
-    correctAnswer: "아니오, 없습니다. 태양의 가시광선은 지표면에 도달하여 우리가 낮에 세상을 볼 수 있고 식물이 광합성을 할 수 있기 때문입니다.",
-    explanation: "대기는 가시광선에 대해 투명(transparent)하여 지표면까지 통과시킵니다.",
+    correctAnswer: "아니오, 가시광선을 차단하는 층은 없습니다. 태양빛이 지표면까지 그대로 도달하여 우리가 낮에 세상을 볼 수 있고 식물이 광합성을 하는 것을 통해 알 수 있습니다.",
+    correctAnswerEn: "No, none of them block visible light. We know this because daylight reaches our eyes every day, letting us see and helping plants grow.",
+    explanation: "대기는 생명체에 치명적인 감마선, X선, 자외선은 차단하지만, 보는 것과 광합성에 꼭 필요한 가시광선은 투명하게 통과시킵니다.",
+    explanationEn: "The atmosphere acts like clean glass for visible light while blocking out dangerous invisible rays like X-rays and harmful ultraviolet radiation.",
+    evidenceQuoteEn: "The atmosphere is transparent to visible light, which passes through to warm the surface and power plant photosynthesis.",
+    evidenceQuoteKo: "대기는 가시광선에 대해 투명하여, 지표면을 데우고 식물 광합성을 돕도록 그대로 통과시킵니다.",
     page: 445
   },
   {
@@ -643,8 +699,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "지구 대기가 들어오는 태양 복사 에너지에 대해 완전히 투명하지 않은 이유는 무엇인가요?",
     questionEn: "Why is the earth's atmosphere not completely transparent to incoming solar radiant energy?",
-    correctAnswer: "구름, 먼지, 수증기, 오존 등이 자외선과 적외선 일부를 흡수하고 반사하기 때문",
-    explanation: "대기 필터링으로 인해 자외선과 적외선 일부가 차단되어 지표면을 보호합니다.",
+    correctAnswer: "구름, 수증기, 먼지, 오존 등이 자외선과 적외선 일부를 흡수하거나 우주로 반사하기 때문입니다.",
+    correctAnswerEn: "Because clouds, water vapor, dust, and gases like ozone absorb and reflect certain wavelengths (especially UV and infrared) before they hit the ground.",
+    explanation: "이러한 대기 필터링 덕분에 낮 동안 지표면이 타는 듯이 과열되지 않고, 위험한 고에너지 복사선으로부터 보호받습니다.",
+    explanationEn: "This natural filtering protects us from severe sunburn and stops the planet from getting dangerously scorched during the daytime.",
+    evidenceQuoteEn: "Dust, clouds, water vapor, and gases in the atmosphere absorb and reflect radiant energy before it can reach the surface.",
+    evidenceQuoteKo: "대기 중의 먼지, 구름, 수증기 및 기체들은 복사 에너지가 지표면에 도달하기 전에 일부를 흡수하고 반사합니다.",
     page: 445
   },
   {
@@ -653,8 +713,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "일반적으로 태양 상수는 대기 상단에서 지표면으로 내려오면서 어떻게 변화하나요?",
     questionEn: "In general, how does the solar constant change from the top of the atmosphere to the surface?",
-    correctAnswer: "대기 상단(1.367 kW/m²)에서 구름의 반사(최대 32%)와 대기 흡수(18%)로 인해 지표면에 도달하는 복사 강도는 감소함",
-    explanation: "대기를 통과하며 산란, 반사, 흡수되므로 지표면에는 약 60~75%만 도달합니다.",
+    correctAnswer: "대기 상단(1.367 kW/m²)에서 지표면으로 내려올수록 구름의 반사(최대 32%)와 대기 흡수(18%)로 인해 에너지가 감소합니다.",
+    correctAnswerEn: "The incoming solar energy decreases on the way down, because up to 32% is reflected by clouds and about 18% is absorbed by the air.",
+    explanation: "우주 경계면에 도달한 원래 태양 복사 에너지 중 약 절반가량만이 지표면에 최종적으로 흡수되어 땅과 바다를 데웁니다.",
+    explanationEn: "Only about 50% of the original sun energy actually makes it through the atmosphere to warm the ground and oceans.",
+    evidenceQuoteEn: "As radiant energy passes through the atmosphere, reflection and absorption reduce the energy arriving at the ground.",
+    evidenceQuoteKo: "복사 에너지가 대기를 통과함에 따라 반사와 흡수로 인해 지표면에 도달하는 에너지는 줄어듭니다.",
     page: 445
   },
   {
@@ -663,8 +727,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "essay",
     question: "복사(Radiation), 전도(Conduction), 대류(Convection)의 일상생활 속 예시를 교재에 나온 것 외에 각각 2가지씩 제시하세요.",
     questionEn: "Make three columns titled Radiation, Conduction, and Convection. Write two everyday examples in each column that are different from those mentioned in the text.",
-    correctAnswer: "복사: 캠프파이어 모닥불 열기, 전자레인지 가열 / 전도: 뜨거운 냄비 손잡이 화상, 얼음 조각을 손에 쥐었을 때 손이 차가워짐 / 대류: 에어컨 냉기가 바닥으로 가라앉음, 주전자 속 물이 끓는 순환",
-    explanation: "열전달의 3대 메커니즘을 일상생활의 과학적 사례로 적용할 수 있습니다.",
+    correctAnswer: "복사: 모닥불 앞에서 느껴지는 열기, 전자레인지 가열 / 전도: 뜨거운 국에 담긴 금속 숟가락 잡기, 손 안에서 얼음이 녹는 것 / 대류: 냄비 속 끓는 물의 순환, 난방기에서 나온 따뜻한 공기가 위로 올라가는 것",
+    correctAnswerEn: "Radiation: feeling warmth from a campfire, heating food in a microwave. Conduction: touching a hot metal spoon in soup, an ice cube melting in your warm palm. Convection: boiling water swirling in a kettle, hot air rising from a room heater.",
+    explanation: "복사는 전자기파 형태로 이동하고, 전도는 물체의 직접 접촉 분자 충돌로 전달되며, 대류는 유체의 순환 이동을 통해 열을 전달합니다.",
+    explanationEn: "Radiation moves heat as waves through empty space, conduction moves heat through touch between molecules, and convection carries heat through moving liquids or air.",
+    evidenceQuoteEn: "Heat moves through the atmosphere by radiation (waves), conduction (direct contact), and convection (moving air currents).",
+    evidenceQuoteKo: "열은 복사(전자기파), 전도(직접 접촉), 대류(공기 순환)의 세 가지 방식으로 대기를 이동합니다.",
     page: 447
   },
   {
@@ -673,8 +741,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "이산화탄소는 \"온실 효과\"에 어떻게 기여하나요?",
     questionEn: "How does carbon dioxide contribute to the 'greenhouse effect'?",
-    correctAnswer: "지표면에서 우주로 빠져나가려는 장파장 열적외선을 흡수하여 다시 지표로 재방출함으로써 대기를 보온함",
-    explanation: "CO2 분자는 적외선 파장의 진동 에너지 흡수에 매우 효과적인 온실가스입니다.",
+    correctAnswer: "이산화탄소는 지표면이 방출하는 열적외선을 흡수한 뒤, 그 열의 일부를 다시 지표면으로 재방출하여 대기를 따뜻하게 보온합니다.",
+    correctAnswerEn: "Carbon dioxide traps heat by absorbing infrared radiation leaving the ground and re-radiating some of that warmth back toward Earth.",
+    explanation: "유리 온실이 열을 가두는 것처럼, 대기 중의 CO2와 수증기는 열을 붙잡아 밤에도 지구 기온이 급격히 영하로 떨어지지 않도록 합니다.",
+    explanationEn: "Like a cozy blanket around the planet, greenhouse gases like CO2 trap heat so nights do not become freezing cold.",
+    evidenceQuoteEn: "Greenhouse gases like carbon dioxide absorb infrared radiation emitted by the earth's surface and redirect it back toward the surface.",
+    evidenceQuoteKo: "이산화탄소와 같은 온실가스는 지표면에서 방출되는 적외선 복사를 흡수하여 지표면 쪽으로 다시 되돌려 보냅니다.",
     page: 448
   },
   {
@@ -683,8 +755,12 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     type: "short_answer",
     question: "대기 중에 하나님께서 지표면을 열과 추위의 극단으로부터 보호하기 위해 사용하신 장치들은 무엇인가요?",
     questionEn: "What features in the atmosphere does God use to protect His creatures on Earth from extremes of heat and cold?",
-    correctAnswer: "낮에는 구름과 대기의 햇빛 반사 및 흡수로 과열을 막고, 밤에는 온실가스(수증기, CO2)의 온실효과로 급격한 냉각을 방지함",
-    explanation: "대기의 적절한 열용량과 온실효과가 일교차를 완화시켜 온화한 환경을 유지합니다.",
+    correctAnswer: "낮에는 구름과 대기가 과도한 햇빛을 반사/흡수하여 과열을 막고, 밤에는 온실가스(수증기, CO2)가 온기를 붙잡아 급격한 한파를 방지합니다.",
+    correctAnswerEn: "Daytime clouds and air reflect away excess heat, while nighttime greenhouse gases (water vapor and CO2) trap warmth so temperatures stay gentle and livable.",
+    explanation: "공기가 없는 달은 낮에 100°C가 넘고 밤에는 영하 170°C로 떨어지지만, 지구는 대기의 보온과 차단 덕분에 온화하게 유지됩니다.",
+    explanationEn: "On the airless Moon, days reach over 100°C and nights plunge below -170°C. Earth's atmosphere buffers temperature swings so living things stay comfortable.",
+    evidenceQuoteEn: "The atmosphere tempers the daily temperature swing: reflecting solar heat by day and trapping infrared warmth by night.",
+    evidenceQuoteKo: "대기는 낮에는 태양열을 반사하고 밤에는 적외선 온기를 가두어 일일 기온 변화의 폭을 온화하게 완화해 줍니다.",
     page: 449
   },
   {
@@ -694,7 +770,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 그리스도인들은 세상이 인구 과잉(overpopulated)이 되고 있다는 점을 우려해야 한다.",
     questionEn: "(True or False) Christians should be concerned that the world is getting overpopulated with people.",
     correctAnswer: false,
-    explanation: "False! 하나님은 인류가 번성하여 땅에 충만하라고 축복하셨으며(문화 명령), 문제는 자원의 고갈이 아니라 지혜로운 청지기적 관리입니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 하나님은 인류가 생육하고 번성하여 땅에 충만하라고 축복하셨습니다. 문제는 인구 자체가 아니라 지혜롭고 책임감 있는 청지기적 자원 관리입니다.",
+    explanationEn: "False! God commanded humanity to be fruitful and fill the earth. The real goal is not fearing population, but practicing wise and loving resource stewardship.",
+    evidenceQuoteEn: "God commanded mankind to fill the earth and subdue it. Human ingenuity under God's wisdom can solve resource challenges.",
+    evidenceQuoteKo: "하나님은 인류에게 땅에 충만하고 다스리라고 명하셨으며, 하나님의 지혜 아래 인간의 창의성은 자원 문제를 능히 해결할 수 있습니다.",
     page: 429
   },
   {
@@ -704,7 +784,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 그리스도인들은 대기 오염을 줄이는 기술에 관심을 가져야 한다.",
     questionEn: "(True or False) Christians should be interested in technology that reduces air pollution.",
     correctAnswer: true,
-    explanation: "True! 생명을 보호하고 이웃을 사랑하며 지구를 지혜롭게 다스리는 통치 직분(Dominion)의 일환입니다.",
+    correctAnswerEn: "True",
+    explanation: "True! 대기 오염을 줄이는 친환경 기술 개발은 사람들의 생명을 지키고 이웃을 사랑하며 지구를 지혜롭게 다스리는 청지기 사명의 실천입니다.",
+    explanationEn: "True! Developing technologies like scrubbers and electric cars protects lives, shows love for our neighbors, and fulfills God's mandate to care for creation.",
+    evidenceQuoteEn: "Christians have a biblical responsibility to reduce pollution, care for human health, and steward the earth wisely.",
+    evidenceQuoteKo: "그리스도인은 오염을 줄이고, 인간의 건강을 돌보며, 지구를 지혜롭게 청지기로서 관리할 성경적 책임을 가집니다.",
     page: 429
   },
   {
@@ -714,7 +798,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 대기의 기원에 대한 오랜 지구 모델은 성운설(nebular hypothesis)과 밀접하게 연관되어 있다.",
     questionEn: "(True or False) The old-earth model for the origin of the atmosphere is closely related to the nebular hypothesis.",
     correctAnswer: true,
-    explanation: "True! 회전하는 가스와 먼지 성운에서 지구가 형성되고 충돌을 거쳐 대기가 진화했다는 이론입니다.",
+    correctAnswerEn: "True",
+    explanation: "True! 성운설은 회전하는 가스와 먼지 원반에서 지구가 형성되었고, 화산 분출과 충돌을 거쳐 대기가 진화했다고 주장합니다.",
+    explanationEn: "True! The old-earth model relies on the nebular hypothesis, where a giant cloud of rotating dust and gas formed Earth and its early atmosphere over billions of years.",
+    evidenceQuoteEn: "The old-earth view of the atmosphere's origin is rooted in the nebular hypothesis of solar system formation.",
+    evidenceQuoteKo: "대기 기원에 대한 오랜 지구 관점은 태양계 형성에 관한 성운설에 뿌리를 두고 있습니다.",
     page: 429
   },
   {
@@ -724,7 +812,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 가장 낮은 온도를 가진 모든 대기 온도층은 바람이 불고 균일한 기체 혼합물을 가지고 있다.",
     questionEn: "(True or False) All the atmospheric temperature layers with the lowest temperatures have winds and a uniform mixture of gases.",
     correctAnswer: true,
-    explanation: "True! 대류권과 최저 온도를 가진 중간권(-90°C)은 모두 동질권(0~80km) 내에 위치하여 균일 혼합과 바람이 존재합니다.",
+    correctAnswerEn: "True",
+    explanation: "True! 최저 기온(-90°C)을 기록하는 중간권과 대류권은 모두 0~80km 사이의 동질권에 속하므로 바람이 불고 기체가 고르게 섞여 있습니다.",
+    explanationEn: "True! Both the troposphere and the coldest layer (the mesosphere at -90°C) are part of the homosphere, where strong winds keep gases thoroughly mixed.",
+    evidenceQuoteEn: "The homosphere extends up to 80 km, covering the troposphere, stratosphere, and mesosphere with uniform mixing.",
+    evidenceQuoteKo: "동질권은 약 80km까지 확장되어, 대류권, 성층권, 중간권을 모두 포함하며 균일한 기체 혼합을 유지합니다.",
     page: 434
   },
   {
@@ -734,7 +826,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 열권(Thermosphere)은 우리가 경험하는 기상 현상의 대부분이 일어나는 곳이다.",
     questionEn: "(True or False) The thermosphere is where most of the weather that we experience occurs.",
     correctAnswer: false,
-    explanation: "False! 날씨 현상의 대부분은 최하층인 대류권(Troposphere)에서 발생합니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 비, 구름, 눈, 바람 등 우리가 경험하는 모든 기상 현상은 최하층인 대류권(Troposphere)에서 일어납니다.",
+    explanationEn: "False! Almost all clouds, rain, snow, and storms occur down in the troposphere where water vapor and air currents mix.",
+    evidenceQuoteEn: "The troposphere is where all of the earth's weather happens, driven by moisture and convection.",
+    evidenceQuoteKo: "대류권은 수증기와 대류 작용에 의해 지구의 모든 기상 현상이 일어나는 유일한 장소입니다.",
     page: 433
   },
   {
@@ -744,7 +840,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 따뜻한 공기와 찬 공기의 지속적인 혼합은 오직 대류권에서만 일어난다.",
     questionEn: "(True or False) The continual mixing of warm and cold air occurs only in the troposphere.",
     correctAnswer: true,
-    explanation: "True! 수직 대류 혼합은 하부가 따뜻하고 상부가 차가운 대류권 고유의 특징입니다.",
+    correctAnswerEn: "True",
+    explanation: "True! 지표면에서 가열된 따뜻한 공기가 위로 솟구치고 위의 찬 공기가 내려앉는 수직 대류 혼합은 대류권 고유의 특징입니다.",
+    explanationEn: "True! Convection (warm air rising and cold air sinking) continuously stirs only the troposphere because heat comes from the ground below.",
+    evidenceQuoteEn: "Convection mixing of warm air rising and cold air sinking is a defining characteristic of the troposphere.",
+    evidenceQuoteKo: "따뜻한 공기가 상승하고 찬 공기가 하강하는 대류 혼합은 대류권을 정의하는 핵심 특징입니다.",
     page: 434
   },
   {
@@ -754,7 +854,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 외기권(Exosphere)은 대부분 수소(hydrogen)로 구성되어 있다.",
     questionEn: "(True or False) The exosphere is mostly hydrogen.",
     correctAnswer: true,
-    explanation: "True! 가장 가벼운 기체인 분자 수소(H2)와 헬륨이 최외각 외기권의 주요 성분입니다.",
+    correctAnswerEn: "True",
+    explanation: "True! 수소는 가장 가벼운 기체 원소이기 때문에 대기권의 가장 바깥 가장자리인 외기권의 대부분을 차지합니다.",
+    explanationEn: "True! Hydrogen is the lightest element in the universe, so it floats to the very highest boundary of Earth's atmosphere.",
+    evidenceQuoteEn: "The outer edge of the heterosphere and the exosphere consist predominantly of lightweight hydrogen and helium atoms.",
+    evidenceQuoteKo: "이질권의 바깥 가장자리와 외기권은 주로 가벼운 수소와 헬륨 원자로 구성됩니다.",
     page: 432
   },
   {
@@ -764,7 +868,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 탄소 순환과 질소 순환은 기본적으로 동일하지만 다른 원소를 포함할 뿐이다.",
     questionEn: "(True or False) The carbon and nitrogen cycles are basically the same but involve different elements.",
     correctAnswer: false,
-    explanation: "False! 탄소는 식물이 직접 CO2를 흡수하지만, 질소는 N2를 직접 흡수하지 못하고 박테리아나 번개의 복잡한 고정 작용을 거쳐야 합니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 식물은 공기 중의 이산화탄소를 직접 흡수할 수 있지만, 질소는 삼중 결합 때문에 박테리아나 번개의 복잡한 고정 과정을 거쳐야만 이용할 수 있습니다.",
+    explanationEn: "False! Carbon is taken in directly by plant leaves as CO2, but nitrogen gas is too tightly bonded and must first be fixed into nitrates by soil bacteria or lightning.",
+    evidenceQuoteEn: "The nitrogen cycle requires biological fixation by bacteria and lightning, which is fundamentally different from the direct gas exchange of carbon.",
+    evidenceQuoteKo: "질소 순환은 박테리아와 번개에 의한 생물학적 고정을 필요로 하며, 이는 직접 기체를 교환하는 탄소 순환과 근본적으로 다릅니다.",
     page: 438
   },
   {
@@ -774,7 +882,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 임의의 주어진 날에 지구 표면에 도달하는 태양 에너지의 양은 적도나 북극권이나 동일하다.",
     questionEn: "(True or False) The amount of solar energy reaching the earth's surface on any given day is the same at the Equator as at the Arctic Circle.",
     correctAnswer: false,
-    explanation: "False! 적도는 태양광이 거의 수직으로 입사해 에너지가 집중되지만, 북극권은 비스듬히 입사하여 훨씬 적은 에너지만 받습니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 적도에는 태양광이 거의 수직으로 내리쬐어 열이 집중되지만, 북극권은 비스듬한 각도로 넓게 분산되어 도달하는 에너지가 훨씬 적습니다.",
+    explanationEn: "False! The sun's rays hit the Equator straight on at a steep angle, whereas rays strike polar regions at a low, slanted angle spreading energy very thinly.",
+    evidenceQuoteEn: "Sunlight hits the Equator directly, delivering concentrated heat, while it strikes polar regions at a low slant.",
+    evidenceQuoteKo: "햇빛은 적도에 직접 수직으로 입사하여 열을 집중시키지만, 극지방에는 낮은 경사각으로 비스듬히 입사합니다.",
     page: 446
   },
   {
@@ -784,7 +896,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 태양 에너지는 주로 전도(conduction)를 통해 지구에 도달한다.",
     questionEn: "(True or False) The sun's energy reaches the earth mainly through conduction.",
     correctAnswer: false,
-    explanation: "False! 진공 우주 공간을 통과하므로 복사(Radiation, 전자기파)를 통해 도달합니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 전도는 분자 간의 직접 접촉이 필요합니다. 태양 에너지는 텅 빈 우주 공간을 전자기파(복사, Radiation) 형태로 통과하여 지구에 도달합니다.",
+    explanationEn: "False! Conduction requires solid contact between particles. Since space is an empty vacuum, solar energy travels exclusively by radiation (electromagnetic waves).",
+    evidenceQuoteEn: "Solar energy travels across the vacuum of space to the earth exclusively through electromagnetic radiation.",
+    evidenceQuoteKo: "태양 에너지는 우주의 진공 공간을 가로질러 오직 전자기 복사선을 통해서만 지구에 도달합니다.",
     page: 445
   },
   {
@@ -794,7 +910,11 @@ export const fullChapterReviewQuestions: ReviewQuestion[] = [
     question: "(True or False) 이산화탄소는 온실가스이기 때문에 공기 오염 물질이다.",
     questionEn: "(True or False) Carbon dioxide is an air pollutant because it is a greenhouse gas.",
     correctAnswer: false,
-    explanation: "False! 교재 'Carbon Dioxide = Air Pollutant?' 심화에서 다루듯, CO2는 식물 광합성에 없어서는 안 될 필수 영양소이자 자연 온실효과를 지탱하는 필수 기체입니다.",
+    correctAnswerEn: "False",
+    explanation: "False! 이산화탄소는 그 자체로 오염 물질이 아닙니다. 식물이 광합성을 하는 데 반드시 필요한 영양분이며, 지구를 생명체가 살기에 알맞게 보온해 주는 필수 온실가스입니다.",
+    explanationEn: "False! CO2 is not naturally a pollutant. It is an essential gas that plants need for photosynthesis and a vital greenhouse gas that keeps Earth from freezing.",
+    evidenceQuoteEn: "Carbon dioxide is not inherently a pollutant; it is an essential nutrient for plants and crucial for Earth's natural temperature balance.",
+    evidenceQuoteKo: "이산화탄소는 본질적으로 오염 물질이 아니며, 식물에게 필수적인 영양소이자 지구의 자연적인 온도 균형에 없어서는 안 될 기체입니다.",
     page: 448
   }
 ];

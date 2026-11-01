@@ -57,9 +57,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   const [viewLayout, setViewLayout] = useState<'text' | 'visual' | 'split'>('text');
   const [langMode, setLangMode] = useState<'ko' | 'en' | 'side-by-side'>('ko');
   
-  // Toggle for textbook original image verification section below text
-  const [isImageSectionExpanded, setIsImageSectionExpanded] = useState<boolean>(false);
-  
   // Toggle for the primary textbook reader (Default: true / open as requested)
   const [isTextbookExpanded, setIsTextbookExpanded] = useState<boolean>(true);
   
@@ -897,8 +894,8 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 setIsTextbookExpanded(prev => !prev);
               }}
               className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
-              title={isTextbookExpanded ? '교재 본문 접기' : '교재 원문 완전 수록 & 시각 자료실 열기 (클릭 시 펼침)'}
-              aria-label="교재 본문 토글"
+              title={isTextbookExpanded ? '교재 원문 접기' : '교재 원문 열기 (클릭 시 펼침)'}
+              aria-label="교재 원문 토글"
             >
               <BookOpen className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
               <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-blue-700 border border-blue-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isTextbookExpanded ? 'rotate-180' : ''}`}>
@@ -907,7 +904,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
             </button>
             <div>
               <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-blue-700 transition-colors">
-                <span>교재 원문 완전 수록 & 시각 자료실</span>
+                <span>교재 원문</span>
                 <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                   p. {section.pages.join(', ')} · 본문 완전 수록
                 </span>
@@ -934,7 +931,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 title="텍스트 번역 및 해설 중심 모드"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>텍스트 본문</span>
+                <span>텍스트</span>
               </button>
               <button
                 onClick={() => {
@@ -949,7 +946,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 title="원본 교재 고화질 사진 및 도표 중심 모드"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>교재 원본 삽화 ({pageImages.length}장)</span>
+                <span>교재</span>
               </button>
               <button
                 onClick={() => {
@@ -964,134 +961,62 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 title="텍스트 번역과 원본 삽화를 나란히 배치"
               >
                 <Columns className="w-3.5 h-3.5" />
-                <span>나란히 분할 보기</span>
+                <span>함께 보기</span>
               </button>
             </div>
-
-            {/* Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsTextbookExpanded(prev => !prev)}
-              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
-            >
-              <span>{isTextbookExpanded ? '본문 접기' : '본문 열기'}</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isTextbookExpanded ? 'rotate-180' : ''}`} />
-            </button>
           </div>
         </div>
 
-        {/* Sub toolbar: Language selector & Word add button (hidden in visual mode) or Visual mode page controls */}
-        {isTextbookExpanded && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-100 text-xs animate-in fade-in duration-150">
-            {/* Quick Page Preview Badges / Selector */}
+        {/* Sub toolbar: Language selector & Word add button (only in text or split mode) */}
+        {isTextbookExpanded && viewLayout !== 'visual' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-blue-100 text-xs animate-in fade-in duration-150">
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] font-bold text-gray-500">
-                {viewLayout === 'visual' ? '교재 페이지 선택:' : '포함 페이지:'}
-              </span>
-              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                {pageImages.map((img, idx) => (
-                  <button
-                    key={img.pageNumber}
-                    onClick={() => {
-                      setActivePageIndex(idx);
-                      setIsImageSectionExpanded(true);
-                    }}
-                    className={`px-2.5 py-1 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
-                      safePageIndex === idx
-                        ? 'bg-blue-600 border-blue-600 text-white font-bold shadow-2xs'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                    title={`p.${img.pageNumber} ${img.title}`}
-                  >
-                    <ImageIcon className={`w-3 h-3 ${safePageIndex === idx ? 'text-white' : 'text-blue-500'}`} />
-                    <span>p.{img.pageNumber} 원본 삽화</span>
-                  </button>
-                ))}
+              {/* Language Toggle */}
+              <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
+                <button
+                  onClick={() => setLangMode('ko')}
+                  className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                    langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  한글
+                </button>
+                <button
+                  onClick={() => setLangMode('en')}
+                  className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                    langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  영어
+                </button>
+                <button
+                  onClick={() => setLangMode('side-by-side')}
+                  className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                    langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  한영
+                </button>
               </div>
+
+              <button
+                onClick={() => handleOpenAddModal('')}
+                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+                <span>단어 직접 등록</span>
+              </button>
+
+              {/* Highlight list / reviewer button */}
+              <button
+                onClick={() => setIsHighlightListOpen(true)}
+                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
+                title="본문 형광펜·밑줄 표시 목록 열기"
+              >
+                <Highlighter className="w-3 h-3 text-amber-600" />
+                <span>형광펜·밑줄 ({sectionHighlights.length})</span>
+              </button>
             </div>
-
-            {/* Text-mode controls: Only visible in text or split mode */}
-            {viewLayout !== 'visual' ? (
-              <div className="flex items-center space-x-2">
-                {/* Language Toggle: Now positioned before Add Word and Highlights */}
-                <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
-                  <button
-                    onClick={() => setLangMode('ko')}
-                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
-                      langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    한글
-                  </button>
-                  <button
-                    onClick={() => setLangMode('en')}
-                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
-                      langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    영어
-                  </button>
-                  <button
-                    onClick={() => setLangMode('side-by-side')}
-                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
-                      langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    한영
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => handleOpenAddModal('')}
-                  className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3 h-3" />
-                  <span>단어 직접 등록</span>
-                </button>
-
-                {/* Highlight list / reviewer button */}
-                <button
-                  onClick={() => setIsHighlightListOpen(true)}
-                  className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
-                  title="본문 형광펜·밑줄 표시 목록 열기"
-                >
-                  <Highlighter className="w-3 h-3 text-amber-600" />
-                  <span>형광펜·밑줄 ({sectionHighlights.length})</span>
-                </button>
-              </div>
-            ) : (
-              /* Visual-mode: Page navigation header controls (Next/Prev) */
-              pageImages.length > 1 && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
-                    페이지 넘기기:
-                  </span>
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
-                      disabled={safePageIndex === 0}
-                      className="px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
-                      title="이전 페이지 (단축키: ←)"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>이전장</span>
-                    </button>
-                    <span className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded">
-                      {safePageIndex + 1} / {pageImages.length}
-                    </span>
-                    <button
-                      onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
-                      disabled={safePageIndex >= pageImages.length - 1}
-                      className="px-2.5 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
-                      title="다음 페이지 (단축키: →)"
-                    >
-                      <span>다음장</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )
-            )}
           </div>
         )}
       </div>
@@ -1205,50 +1130,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 </div>
               </div>
             </div>
-
-            {/* Bottom Page Navigation Bar: Child-friendly large flipping buttons */}
-            {pageImages.length > 1 && (
-              <div className="p-3 bg-gray-50 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
-                  disabled={safePageIndex === 0}
-                  className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed font-bold text-xs sm:text-sm flex items-center space-x-1.5 shadow-2xs transition-all cursor-pointer"
-                >
-                  <ChevronLeft className="w-4 h-4 text-blue-600" />
-                  <span>
-                    이전 페이지 {safePageIndex > 0 ? `(p.${pageImages[safePageIndex - 1].pageNumber})` : ''}
-                  </span>
-                </button>
-
-                {/* Page indicator pills */}
-                <div className="flex items-center space-x-1.5 flex-wrap">
-                  {pageImages.map((p, idx) => (
-                    <button
-                      key={p.pageNumber}
-                      onClick={() => setActivePageIndex(idx)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                        safePageIndex === idx
-                          ? 'bg-blue-600 text-white shadow-2xs ring-2 ring-blue-300'
-                          : 'bg-white text-gray-600 border border-gray-200 hover:bg-blue-50'
-                      }`}
-                    >
-                      p.{p.pageNumber} ({idx + 1}/{pageImages.length})
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
-                  disabled={safePageIndex >= pageImages.length - 1}
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed font-bold text-xs sm:text-sm flex items-center space-x-1.5 shadow-xs transition-all cursor-pointer"
-                >
-                  <span>
-                    다음 페이지 {safePageIndex < pageImages.length - 1 ? `(p.${pageImages[safePageIndex + 1].pageNumber})` : ''}
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            )}
 
             {/* Key illustrations breakdown for the active page */}
             <div className="p-4 bg-blue-50/40 border-t border-gray-100 space-y-1.5">
@@ -1474,88 +1355,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               </div>
             )}
           </div>
-
-          {/* 2. 교재 원본 고화질 삽화 & 도표 확인 (SECOND: 학습 후 원본과 대조 확인용) */}
-          {pageImages.length > 0 && (
-            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-white border border-blue-200/80 rounded-xl p-4 shadow-2xs">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div 
-                  onClick={() => setIsImageSectionExpanded((prev) => !prev)}
-                  className="flex items-center space-x-3 cursor-pointer select-none group"
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsImageSectionExpanded((prev) => !prev);
-                    }}
-                    className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
-                    title={isImageSectionExpanded ? '교재 원본 삽화 접기' : '교재 원본 삽화 확인하기 (클릭 시 펼침)'}
-                    aria-label="교재 원본 삽화 토글"
-                  >
-                    <ImageIcon className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
-                    <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-blue-700 border border-blue-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isImageSectionExpanded ? 'rotate-180' : ''}`}>
-                      <ChevronDown className="w-3 h-3" />
-                    </span>
-                  </button>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-blue-700 transition-colors">
-                      <span>교재 원본과 내용 확인하기</span>
-                      <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                        p. {section.pages.join(', ')} 고화질 삽화 & 도표 ({pageImages.length}장)
-                      </span>
-                    </h4>
-                    <p className="text-xs text-gray-500">
-                      텍스트로 먼저 공부한 후, 실제 교재의 컬러 사진, 기온 감률 곡선, 여백 필기와 대조해 보세요.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setViewLayout('visual')}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
-                  >
-                    <span>전체화면 갤러리</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Collapsible Image Grid: Shows only when child wants to cross-verify against the textbook */}
-              {isImageSectionExpanded && (
-                <div className="mt-4 pt-3.5 border-t border-blue-100 animate-in fade-in duration-200">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {pageImages.map((pImg) => (
-                      <div
-                        key={pImg.pageNumber}
-                        onClick={() => handleOpenLightbox(pImg)}
-                        className="group relative bg-white rounded-lg border border-gray-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-blue-400 transition-all cursor-pointer"
-                      >
-                        <div className="aspect-[3/4] overflow-hidden bg-gray-50">
-                          <img
-                            src={pImg.imageSrc}
-                            alt={pImg.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                            loading="lazy"
-                          />
-                        </div>
-                        <div className="p-2 bg-white border-t border-gray-100">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-blue-700">p.{pImg.pageNumber}</span>
-                            <span className="text-[10px] text-gray-400">클릭 확대</span>
-                          </div>
-                          <p className="text-[10px] text-gray-600 truncate mt-0.5">
-                            {pImg.title}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
         </div>

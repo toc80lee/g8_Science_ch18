@@ -34,12 +34,14 @@ interface SelfLearningVoiceJournalProps {
   section: ChapterSection;
   onGoToQuiz?: () => void;
   onGoToMedia?: () => void;
+  embedded?: boolean;
 }
 
 export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> = ({
   section,
   onGoToQuiz,
-  onGoToMedia
+  onGoToMedia,
+  embedded = false
 }) => {
   // Collapsible state (matching TextbookReader)
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
@@ -292,7 +294,7 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
   ];
 
   return (
-    <div className="my-5 bg-gradient-to-r from-amber-50/80 via-yellow-50/50 to-white border border-amber-300/80 rounded-xl p-4 shadow-2xs transition-all duration-200">
+    <div className={embedded ? "space-y-4" : "my-5 bg-gradient-to-r from-amber-50/80 via-yellow-50/50 to-white border border-amber-300/80 rounded-xl p-4 shadow-2xs transition-all duration-200"}>
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-amber-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs sm:text-sm flex items-center space-x-2 border border-amber-700 animate-in fade-in slide-in-from-bottom-3 duration-300">
@@ -301,65 +303,83 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
         </div>
       )}
 
-      {/* Header Banner - Identical layout, icon size, font, and button position to Textbook Original box */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div 
-          onClick={() => setIsExpanded(prev => !prev)}
-          className="flex items-center space-x-3 cursor-pointer select-none group"
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(prev => !prev);
-            }}
-            className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
-            title={isExpanded ? '학습 녹음기 접기' : '학습 녹음기 및 배운 내용 분석 열기'}
-            aria-label="학습 녹음기 토글"
-          >
-            <Mic className={`w-5 h-5 transition-transform ${isRecording ? 'animate-bounce text-red-200' : 'group-hover/btn:scale-110'}`} />
-            <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-amber-700 border border-amber-300 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-3 h-3" />
-            </span>
-          </button>
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-amber-700 transition-colors">
-              <span>오늘 배운 내용 스스로 녹음하기 & AI 학습 진단</span>
+      {/* Embedded Sub-header or Standalone Header Banner */}
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-amber-100">
+          <p className="text-xs sm:text-sm text-gray-700 font-medium">
+            섹션을 읽은 후 "나는 이 단원에서 이런 걸 배웠어"라고 편하게 말해보세요. 핵심 개념을 다 배웠는지 진단하고 맞춤 가이드를 제공합니다.
+          </p>
+          {savedJournal && (
+            <div className="flex items-center space-x-2">
               <span className="text-[11px] font-semibold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
                 <Sparkles className="w-3 h-3 text-amber-600" />
-                <span>{savedJournal ? `평가 완료 (${savedJournal.feedback.score}점)` : '스스로 말해보기'}</span>
+                <span>평가 완료 ({savedJournal.feedback.score}점)</span>
               </span>
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
-              섹션을 읽은 후 "나는 이 단원에서 이런 걸 배웠어"라고 편하게 말해보세요. 핵심 개념을 다 배웠는지 진단하고 맞춤 가이드를 제공합니다.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Header Action / Quick Status */}
-        <div className="flex items-center space-x-2">
-          {savedJournal && (
-            <button
-              onClick={handleReset}
-              className="text-xs text-gray-500 hover:text-red-600 px-2.5 py-1 rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50/50 transition-colors flex items-center space-x-1 cursor-pointer"
-              title="녹음 내용 초기화"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">다시 녹음하기</span>
-            </button>
+              <button
+                onClick={handleReset}
+                className="text-xs text-gray-500 hover:text-red-600 px-2.5 py-1 rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50/50 transition-colors flex items-center space-x-1 cursor-pointer"
+                title="녹음 내용 초기화"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">다시 녹음하기</span>
+              </button>
+            </div>
           )}
-          <button
-            onClick={() => setIsExpanded(prev => !prev)}
-            className="text-xs text-amber-800 font-semibold px-3 py-1.5 rounded-lg bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 transition-colors cursor-pointer"
-          >
-            {isExpanded ? '접기 ▲' : '열고 녹음하기 ▼'}
-          </button>
         </div>
-      </div>
+      ) : (
+        /* Standalone Header Banner */
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div 
+            onClick={() => setIsExpanded(prev => !prev)}
+            className="flex items-center space-x-3 cursor-pointer select-none group"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(prev => !prev);
+              }}
+              className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
+              title={isExpanded ? '셀프 학습 접기' : '셀프 학습 열기 (클릭 시 펼침)'}
+              aria-label="셀프 학습 토글"
+            >
+              <Mic className={`w-5 h-5 transition-transform ${isRecording ? 'animate-bounce text-red-200' : 'group-hover/btn:scale-110'}`} />
+              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-amber-700 border border-amber-300 flex items-center justify-center shadow-xs transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-3 h-3" />
+              </span>
+            </button>
+            <div>
+              <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-amber-700 transition-colors">
+                <span>셀프 학습</span>
+                <span className="text-[11px] font-semibold text-amber-800 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-full flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3 text-amber-600" />
+                  <span>{savedJournal ? `평가 완료 (${savedJournal.feedback.score}점)` : '스스로 말해보기'}</span>
+                </span>
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">
+                섹션을 읽은 후 "나는 이 단원에서 이런 걸 배웠어"라고 편하게 말해보세요. 핵심 개념을 다 배웠는지 진단하고 맞춤 가이드를 제공합니다.
+              </p>
+            </div>
+          </div>
 
-      {/* Collapsible Content Body */}
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-amber-200/80 space-y-4 animate-in fade-in duration-200">
+          {savedJournal && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleReset}
+                className="text-xs text-gray-500 hover:text-red-600 px-2.5 py-1 rounded-lg border border-gray-200 hover:border-red-200 hover:bg-red-50/50 transition-colors flex items-center space-x-1 cursor-pointer"
+                title="녹음 내용 초기화"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">다시 녹음하기</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Content Body */}
+      {(isExpanded || embedded) && (
+        <div className={embedded ? "space-y-4 animate-in fade-in duration-200" : "mt-4 pt-4 border-t border-amber-200/80 space-y-4 animate-in fade-in duration-200"}>
           {/* 1. Interactive Recording Console */}
           <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-2xs space-y-4">
             {/* Top Prompt Guidance for Kids */}
