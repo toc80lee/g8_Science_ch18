@@ -114,3 +114,26 @@ export interface ChapterSection {
   marginNotes?: MarginNote[];
   questions?: ReviewQuestion[];
 }
+
+export interface JournalFeedback {
+  score: number; // 0 to 100
+  level: 'mastered' | 'good' | 'growing' | 'review_needed';
+  levelLabel: string;
+  summary: string;
+  coveredPoints: { title: string; detail: string }[];
+  missingPoints: { title: string; detail: string; relatedPage?: number }[];
+  studyGuide: { step: string; action: string; linkHint?: string }[];
+}
+
+export interface VoiceJournalEntry {
+  id: string;
+  sectionId: string;
+  sectionTitleKo: string;
+  sectionTitleEn: string;
+  recordedAt: number;
+  durationSeconds: number;
+  transcript: string;
+  audioDataUrl?: string;
+  feedback: JournalFeedback;
+}
+

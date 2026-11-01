@@ -14,6 +14,7 @@ import { MyLearningRecordView } from './components/MyLearningRecordView';
 import { DriveSyncModal } from './components/DriveSyncModal';
 import { TrackSelectModal } from './components/TrackSelectModal';
 import { LoginAssistModal } from './components/LoginAssistModal';
+import { SelfLearningVoiceJournal } from './components/SelfLearningVoiceJournal';
 import { 
   initAuth, 
   googleSignIn, 
@@ -736,6 +737,11 @@ export default function App() {
                 onSaveHighlight={handleSaveHighlight}
                 onDeleteHighlight={handleDeleteHighlight}
                 onClearSectionHighlights={handleClearSectionHighlights}
+              />
+
+              {/* [스스로 말하는 학습 녹음기 & AI 배운 내용 분석] (노란색 박스 - 교재 원본 바로 아래) */}
+              <SelfLearningVoiceJournal
+                section={currentSection}
               />
 
               {/* [교재 관련 추천 영상 & 과학 탐구 블로그 자료실] */}

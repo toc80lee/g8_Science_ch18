@@ -1,7 +1,8 @@
 import React from 'react';
 import { User } from 'firebase/auth';
-import { ChapterSection, CustomWord } from '../types';
+import { ChapterSection, CustomWord, VoiceJournalEntry } from '../types';
 import { LearningHistoryData, DriveFileInfo, APP_DRIVE_FOLDER_NAME } from '../services/googleDriveService';
+import { loadAllVoiceJournals } from '../services/voiceJournalService';
 import { 
   User as UserIcon, 
   CloudUpload, 
@@ -17,7 +18,12 @@ import {
   Calendar,
   LogOut,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Mic,
+  Volume2,
+  Play,
+  Pause,
+  Award
 } from 'lucide-react';
 
 interface MyLearningRecordViewProps {
@@ -56,8 +62,38 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
   const completedCount = history.completedSectionIds.length;
   const progressPercent = Math.round((completedCount / sections.length) * 100);
 
+  // Load recorded voice journals
+  const [voiceJournals] = React.useState<Record<string, VoiceJournalEntry>>(() => loadAllVoiceJournals());
+  const journalList = Object.values(voiceJournals).sort((a, b) => b.recordedAt - a.recordedAt);
+  const [playingAudioId, setPlayingAudioId] = React.useState<string | null>(null);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const handleTogglePlayAudio = (id: string, audioUrl?: string) => {
+    if (!audioUrl) return;
+    if (playingAudioId === id) {
+      audioRef.current?.pause();
+      setPlayingAudioId(null);
+    } else {
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.play().then(() => {
+          setPlayingAudioId(id);
+        }).catch(err => {
+          console.warn('Audio play failed:', err);
+          setPlayingAudioId(null);
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Hidden audio element for journal playback */}
+      <audio
+        ref={audioRef}
+        onEnded={() => setPlayingAudioId(null)}
+        className="hidden"
+      />
       {/* Top Breadcrumb banner */}
       <div className="bg-blue-50/70 border border-blue-100 rounded px-4 py-2.5 text-xs text-blue-700 font-medium flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -245,16 +281,30 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
       )}
 
       {/* Overview Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
           <div className="text-xs text-gray-500 font-medium mb-1">단원 완료율</div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl font-extrabold text-blue-600">{progressPercent}%</span>
-            <span className="text-xs text-gray-400">({completedCount} / {sections.length} 완료)</span>
+            <span className="text-xs text-gray-400">({completedCount} / {sections.length})</span>
           </div>
           <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
             <div className="bg-blue-600 h-full rounded-full" style={{ width: `${progressPercent}%` }} />
           </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/20 shadow-2xs">
+          <div className="text-xs text-amber-800 font-medium mb-1 flex items-center space-x-1">
+            <Mic className="w-3.5 h-3.5 text-amber-600" />
+            <span>음성 학습 일기</span>
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl font-extrabold text-amber-700">{journalList.length}</span>
+            <span className="text-xs text-gray-400">개 섹션 녹음</span>
+          </div>
+          <p className="text-[11px] text-amber-700 mt-2">
+            AI 성취도 평균: <strong className="text-amber-900">{journalList.length > 0 ? Math.round(journalList.reduce((acc, j) => acc + j.feedback.score, 0) / journalList.length) : 0}점</strong>
+          </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
@@ -281,6 +331,102 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
           </p>
         </div>
       </div>
+
+      {/* Voice Learning Records Showcase */}
+      {journalList.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-50/70 via-yellow-50/40 to-white border border-amber-300 rounded-2xl p-6 shadow-xs space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-200">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-2xs">
+                <Mic className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center space-x-2">
+                  <span>스스로 말하는 음성 학습 일기 모음</span>
+                  <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                    총 {journalList.length}개 기록됨
+                  </span>
+                </h3>
+                <p className="text-xs text-gray-500">
+                  아이가 각 섹션을 읽고 스스로 정리하여 녹음한 음성과 AI 선생님의 진단 피드백입니다.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3.5">
+            {journalList.map((j) => (
+              <div key={j.id} className="bg-white rounded-xl border border-amber-200 p-4 shadow-2xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center">
+                      🎙️
+                    </span>
+                    <div>
+                      <h4 className="font-bold text-sm text-gray-900 hover:text-amber-700 cursor-pointer" onClick={() => onGoToSection(j.sectionId)}>
+                        {j.sectionTitleKo}
+                      </h4>
+                      <div className="text-[11px] text-gray-400 flex items-center space-x-2 mt-0.5">
+                        <Clock className="w-3 h-3" />
+                        <span>{new Date(j.recordedAt).toLocaleString('ko-KR')}</span>
+                        <span>·</span>
+                        <span>녹음 시간: {j.durationSeconds}초</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300">
+                      {j.feedback.levelLabel} ({j.feedback.score}점)
+                    </span>
+
+                    {j.audioDataUrl && (
+                      <button
+                        onClick={() => handleTogglePlayAudio(j.id, j.audioDataUrl)}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-2xs cursor-pointer transition-colors"
+                      >
+                        {playingAudioId === j.id ? (
+                          <>
+                            <Pause className="w-3.5 h-3.5 fill-current" />
+                            <span>정지</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>녹음 듣기</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => onGoToSection(j.sectionId)}
+                      className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-medium border border-gray-200 cursor-pointer"
+                    >
+                      해당 단원 이동 →
+                    </button>
+                  </div>
+                </div>
+
+                {/* Transcript snippet */}
+                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 text-xs text-gray-800 leading-relaxed font-sans">
+                  <span className="font-bold text-gray-500 block mb-0.5">📝 아이가 말한 내용:</span>
+                  <p className="line-clamp-2 italic">"{j.transcript}"</p>
+                </div>
+
+                {/* AI Teacher summary */}
+                <div className="bg-amber-50/60 p-2.5 rounded-lg border border-amber-100 text-xs text-amber-950 flex items-start space-x-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-amber-900 mr-1.5">선생님 피드백:</span>
+                    <span>{j.feedback.summary}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Section Study History Table */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-4">
