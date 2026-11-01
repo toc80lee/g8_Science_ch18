@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { allChapterSections } from './data/chapter18Data';
-import { keyTermsList } from './data/reviewAndGlossary';
+import { keyTermsList, chapterSummaryPoints } from './data/reviewAndGlossary';
 import { ChapterSection, CustomWord, TextHighlight } from './types';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { TextbookReader } from './components/TextbookReader';
 import { ActivityTabStrip } from './components/ActivityTabStrip';
+import { ChapterSummaryTermsSection } from './components/ChapterSummaryTermsSection';
 import { QuizView } from './components/QuizView';
 import { GlossaryPageView } from './components/GlossaryPageView';
 import { MyLearningRecordView } from './components/MyLearningRecordView';
@@ -512,6 +513,14 @@ export default function App() {
   };
 
   const isCurrentCompleted = completedIds.includes(currentSection.id);
+  const isReviewOrSummarySection = 
+    currentSection.category === 'review' || 
+    currentSection.id === 'sec-summary-terms' || 
+    currentSection.id === 'sec-chapter-review-30' ||
+    currentSection.id === 'sec-18a-review' ||
+    currentSection.id === 'sec-18b-review' ||
+    currentSection.id === 'sec-18c-review' ||
+    currentSection.id.includes('-review');
 
   const currentHistoryPayload: LearningHistoryData = {
     userId: user?.uid || 'guest',
@@ -726,19 +735,34 @@ export default function App() {
                 </div>
               </div>
 
-              {/* [교재 원문] - 상단 우선 배치 및 하이라이트/밑줄 기능 */}
-              <TextbookReader
-                section={currentSection}
-                onAddCustomWord={handleAddCustomWord}
-                customWords={customWords}
-                highlights={textHighlights}
-                onSaveHighlight={handleSaveHighlight}
-                onDeleteHighlight={handleDeleteHighlight}
-                onClearSectionHighlights={handleClearSectionHighlights}
-              />
+              {/* [교재 원문 & 활동 탭 스트립] - 모든 복습 섹션(18A, 18B, 18C Review, 18 Review) 및 요약에서는 제외 */}
+              {!isReviewOrSummarySection && (
+                <>
+                  <TextbookReader
+                    section={currentSection}
+                    onAddCustomWord={handleAddCustomWord}
+                    customWords={customWords}
+                    highlights={textHighlights}
+                    onSaveHighlight={handleSaveHighlight}
+                    onDeleteHighlight={handleDeleteHighlight}
+                    onClearSectionHighlights={handleClearSectionHighlights}
+                  />
 
-              {/* [활동 탭 스트립] - 셀프 학습 · 추천 자료 · 탐구 실습 3개 활동을 1개의 탭스트립으로 통합 */}
-              <ActivityTabStrip section={currentSection} />
+                  {/* [활동 탭 스트립] - 셀프 학습 · 추천 자료 · 탐구 실습 3개 활동을 1개의 탭스트립으로 통합 */}
+                  <ActivityTabStrip section={currentSection} />
+                </>
+              )}
+
+              {/* [18. Summary & Key Terms 전용 요약 및 용어 사전 뷰] */}
+              {currentSection.id === 'sec-summary-terms' && (
+                <ChapterSummaryTermsSection
+                  summaryPoints={chapterSummaryPoints}
+                  keyTerms={keyTermsList}
+                  customWords={customWords}
+                  onAddCustomWord={handleAddCustomWord}
+                  onNavigateToEvidence={handleNavigateToEvidence}
+                />
+              )}
 
               {/* If the current section is a quiz/review module, render interactive quiz directly! */}
               {currentSection.questions && currentSection.questions.length > 0 && (
