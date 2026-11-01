@@ -2,24 +2,93 @@ import { ChapterSection } from '../types';
 
 export const sections18C: ChapterSection[] = [
   {
-    id: 'sec-18-9-10',
+    id: 'sec-18-9',
     category: '18C',
     numberBadge: '9',
-    titleKo: '18.9 복사하는 태양 & 18.10 태양 상수와 에너지 수지',
-    titleEn: '18.9 The Radiant Sun & 18.10 The Solar Constant',
-    breadcrumb: '18C · 18.9-10 Solar Energy · 복사 에너지와 태양 상수',
-    pages: [445, 446],
+    titleKo: '18.9 복사하는 태양 (The Radiant Sun)',
+    titleEn: '18.9 The Radiant Sun',
+    breadcrumb: '18C · 18.9 The Radiant Sun · 복사하는 태양',
+    pages: [445],
     objectives: [
-      '태양이 방출하는 광범위한 전자기파(적외선, 가시광선, 자외선)의 특성을 이해한다.',
-      '대기 상층부에 도달하는 복사 에너지율인 태양 상수(Solar Constant, 1.367 kW/m²)의 정의와 물리적 의미를 파악한다.',
-      '지구 대기의 에너지 균형(구름 반사 최대 32%, 대기 흡수 최대 18%, 지표면 흡수 50% 이상)을 수치로 분석한다.',
-      '위도 및 입사각에 따른 태양 에너지 밀도 차이와 1815년 탐보라 화산 폭발("여름 없는 해") 사례를 검토한다.'
+      '지구 표면의 에너지를 공급하는 근원으로서 태양이 방출하는 전자기파와 하전 입자(태양풍)의 특성을 이해한다.',
+      '전자기파 스펙트럼(전파부터 감마선까지) 중 태양 복사 에너지가 가시광선과 적외선 파장대에 집중되어 있음을 파악한다.',
+      '맑은 날 지표면에 도달하는 태양 에너지율(약 0.95 kW/m²)의 물리적 의미를 학습한다.',
+      '1815년 탐보라 화산 폭발로 인한 성층권 화산재 유입과 1816년 "여름 없는 해" 기후 이변 사례를 분석한다.'
     ],
     interactiveSpec: {
       type: 'code_preview',
-      missionTitle: '미션 9 · 지구 대기권의 태양 에너지 반사·흡수 수지(Energy Budget) 계산기',
+      missionTitle: '미션 9 · 복사하는 태양: 전자기 스펙트럼과 1815년 탐보라 화산 사건',
       missionNumber: '18-9',
-      stepTotal: 4,
+      stepTotal: 2,
+      tabs: [
+        {
+          id: 'em-spectrum',
+          label: '① 전자기파 스펙트럼 & 복사 에너지',
+          codeSnippet: `// [태양의 방출 에너지와 전자기파 스펙트럼]
+const RadiantSunEnergy = {
+  primaryForms: [
+    "전자기파 (Electromagnetic waves: 빛 에너지)",
+    "태양풍 (Solar wind: 고에너지 양성자와 전자)"
+  ],
+  wavelengthSpectrum: {
+    longest: "전파 (Radio waves)",
+    visibleAndInfrared: "지구 도달 복사 에너지의 대부분 (가시광선 & 적외선)",
+    shortest: "감마선 (Gamma rays)"
+  },
+  surfaceEnergyRate: "화창한 날 지표면 도달 복사열: 약 0.95 kW/m²"
+};`,
+          description: '태양 복사 에너지는 전파부터 감마선까지 방출되며 가시광선과 적외선 파장대에 집중되어 있습니다.'
+        },
+        {
+          id: 'tambora-1815',
+          label: '② 역사적 사례: 1815년 탐보라 화산 폭발',
+          codeSnippet: `// [1815년 탐보라 화산 폭발과 '여름 없는 해' (Year Without a Summer)]
+const TamboraEvent_1815 = {
+  location: "인도네시아 탐보라 화산 (1815년 4월 대폭발)",
+  mechanism: "성층권으로 유입된 막대한 양의 화산재와 황산염 에어로졸",
+  impact: {
+    solarReduction: "지표면 도달 태양광이 정상치의 80% 수준으로 급감 (20% 차단)",
+    climateEffect: "1816년 북반구 전역에 한여름 눈 폭풍 및 서리 발생",
+    societalImpact: "전 지구적 흉작, 대기근 및 식량 폭동 초래"
+  }
+};`,
+          description: '1815년 탐보라 화산재가 성층권에 퍼져 태양광을 20% 차단하면서 1816년 "여름 없는 해"를 초래했습니다.'
+        }
+      ],
+      defaultTabId: 'em-spectrum',
+      bottomInsight: '태양은 가시광선과 적외선을 중심으로 엄청난 복사 에너지를 방출하며, 맑은 날 지표면 1m²당 약 0.95 kW가 도달합니다. 탐보라 화산재처럼 대기 중 미립자가 빛을 차단하면 극적인 기후 변화가 발생합니다.'
+    },
+    contentKo: [
+      '[복사하는 태양 (The Radiant Sun)]',
+      '지구 표면의 거의 모든 에너지는 직접적으로 또는 간접적으로 태양에서 옵니다. 태양은 광범위한 에너지와 하전 입자들을 방출합니다.',
+      '태양이 방출하는 에너지의 대부분은 전자기파(Electromagnetic waves), 즉 빛 에너지(Light energy) 형태입니다. 또한 태양풍을 이루는 고에너지 양성자와 전자도 방출합니다.',
+      '전자기파 스펙트럼에는 가장 파장이 긴 전파(Radio waves)부터 감마선(Gamma rays)까지 다양하며, 태양 복사 에너지의 대부분은 가시광선(Visible light)과 보이지 않는 적외선(Infrared wavelengths) 파장대에 집중되어 있습니다.',
+      '화창한 날 태양이 머리 위에 있을 때 지표면에 도달하는 태양 에너지는 1초당 1 제곱미터당 약 0.95 kW/m²에 이릅니다.',
+      '1815년 인도네시아 탐보라(Mount Tambora) 화산의 대폭발 당시 성층권으로 솟구친 화산재 먼지는 지표면 일조량을 80% 수준으로 떨어뜨렸고, 이로 인해 전 세계는 1816년에 "여름이 없었던 해(Year without a summer)"라는 극심한 기후 이변을 겪었습니다.'
+    ],
+    contentEn: [
+      'Almost all the energy at the surface of the earth comes directly or indirectly from the sun. The sun emits a wide variety of energy and particles. Most of the sun\'s radiated energy is in the form of electromagnetic waves—light energy. The sun also emits energetic protons and electrons that make up the solar wind. These different kinds of waves vary in wavelength. Radio waves are the longest waves and gamma rays the shortest. Although the sun emits radiant energy at all wavelengths, most of the radiant energy received by the earth is in the visible and infrared wavelengths.',
+      'The sun\'s energy that reaches the earth\'s surface on a typical sunny day with the sun directly overhead is about 0.95 kW/m² each second. Following the catastrophic eruption of Mount Tambora in 1815, volcanic dust reduced the surface solar illumination to 80% of that value. This very abnormal condition plunged the world into a "year without a summer."'
+    ]
+  },
+  {
+    id: 'sec-18-10',
+    category: '18C',
+    numberBadge: '10',
+    titleKo: '18.10 태양 상수와 대기 에너지 수지 (The Solar Constant)',
+    titleEn: '18.10 The Solar Constant',
+    breadcrumb: '18C · 18.10 The Solar Constant · 태양 상수와 에너지 수지',
+    pages: [445, 446],
+    objectives: [
+      '우주 공간을 지나 지구 대기 최상단에 수직으로 도달하는 태양 복사 에너지율인 태양 상수(Solar Constant, 1.367 kW/m²)의 정의와 물리적 의미를 파악한다.',
+      '지구 대기의 에너지 균형(구름/먼지 반사 최대 32%, 대기 직접 흡수 최대 18%, 지표면 흡수 50%~75%)을 수치로 분석한다.',
+      '남위 23.5°~북위 23.5° 적도대 수직 입사와 고위도 경사 입사에 따른 단위 면적당 에너지 밀도 분산을 이해한다.'
+    ],
+    interactiveSpec: {
+      type: 'code_preview',
+      missionTitle: '미션 10 · 태양 상수(1.367 kW/m²)와 대기 에너지 수지(Energy Budget) 계산기',
+      missionNumber: '18-10',
+      stepTotal: 2,
       tabs: [
         {
           id: 'solar-budget',
@@ -51,33 +120,12 @@ function calculateEnergyDensity(latitude, solarAngle) {
   };
 }`,
           description: '적도 부근(남위/북위 23.5° 이내)은 수직으로 입사해 에너지가 집중되고, 고위도는 경사져 에너지가 분산됩니다.'
-        },
-        {
-          id: 'tambora-1815',
-          label: '③ 역사적 사례: 1815년 탐보라 화산 폭발',
-          codeSnippet: `// [1815년 탐보라 화산 폭발과 '여름 없는 해' (Year Without a Summer)]
-const TamboraEvent_1815 = {
-  location: "인도네시아 탐보라 화산",
-  mechanism: "성층권으로 유입된 막대한 양의 화산재와 황산염 에어로졸",
-  impact: {
-    solarReduction: "지표면 도달 태양광이 80% 수준으로 급감 (20% 차단)",
-    climateEffect: "1816년 북반구 전역에 한여름 눈 폭풍 및 서리 발생",
-    societalImpact: "전 지구적 흉작, 대기근 및 식량 폭동 초래"
-  }
-};`,
-          description: '1815년 탐보라 화산재가 성층권에 퍼져 태양광을 20% 차단하면서 1816년 "여름 없는 해"를 초래했습니다.'
         }
       ],
       defaultTabId: 'solar-budget',
       bottomInsight: '대기 상단에는 1.367 kW/m²의 태양 에너지가 유입되며, 구름이 최대 32%를 우주로 반사하고 대기가 18%를 흡수하며 지표면이 50% 이상을 흡수합니다. 입사각에 따라 적도는 강한 에너지를 받고 고위도는 분산됩니다.'
     },
     contentKo: [
-      '[복사하는 태양 (The Radiant Sun)]',
-      '지구 표면의 거의 모든 에너지는 직접적으로 또는 간접적으로 태양에서 옵니다. 태양은 광범위한 에너지와 하전 입자들을 방출합니다.',
-      '태양이 방출하는 에너지의 대부분은 전자기파(Electromagnetic waves), 즉 빛 에너지(Light energy) 형태입니다. 또한 태양풍을 이루는 고에너지 양성자와 전자도 방출합니다.',
-      '전자기파 스펙트럼에는 가장 파장이 긴 전파(Radio waves)부터 감마선(Gamma rays)까지 다양하며, 태양 복사 에너지의 대부분은 가시광선(Visible light)과 보이지 않는 적외선(Infrared wavelengths) 파장대에 집중되어 있습니다.',
-      '화창한 날 태양이 머리 위에 있을 때 지표면에 도달하는 태양 에너지는 1초당 1 제곱미터당 약 0.95 kW/m²에 이릅니다.',
-      '1815년 인도네시아 탐보라(Mount Tambora) 화산의 대폭발 당시 성층권으로 솟구친 화산재 먼지는 지표면 일조량을 80% 수준으로 떨어뜨렸고, 이로 인해 전 세계는 1816년에 "여름이 없었던 해(Year without a summer)"라는 극심한 기후 이변을 겪었습니다.',
       '[태양 상수 (The Solar Constant)]',
       '지구가 받는 태양 에너지는 태양 전체 방출량의 극히 일부분에 불과하지만, 지구상의 모든 생명을 지탱하기에 완벽하게 충분합니다.',
       '천문학자들은 우주 공간을 지나 지구 대기 최상단에 수직으로 도달하는 태양 복사 에너지의 양을 "태양 상수(The Solar Constant)"라고 부르며, 그 값은 대략 1.367 kW/m²(킬로와트/제곱미터)입니다.',
@@ -86,8 +134,6 @@ const TamboraEvent_1815 = {
       '태양 광선이 지표면에 거의 수직으로 내리쬘 때 단위 면적당 에너지 입력이 가장 큽니다. 이는 남위 23.5°에서 북위 23.5° 사이의 좁은 적도대에서만 발생하며, 고위도로 갈수록 태양 광선이 비스듬히 입사하여 에너지가 넓은 면적에 분산됩니다(그림 18-14).'
     ],
     contentEn: [
-      'Almost all the energy at the surface of the earth comes directly or indirectly from the sun. The sun emits a wide variety of energy and particles. Most of the sun\'s radiated energy is in the form of electromagnetic waves—light energy. The sun also emits energetic protons and electrons that make up the solar wind. These different kinds of waves vary in wavelength. Radio waves are the longest waves and gamma rays the shortest. Although the sun emits radiant energy at all wavelengths, most of the radiant energy received by the earth is in the visible and infrared wavelengths.',
-      'The sun\'s energy that reaches the earth\'s surface on a typical sunny day with the sun directly overhead is about 0.95 kW/m² each second. Following the catastrophic eruption of Mount Tambora in 1815, volcanic dust reduced the surface solar illumination to 80% of that value. This very abnormal condition plunged the world into a "year without a summer."',
       'Although the earth receives only a tiny part of the sun\'s total energy output, it is enough to sustain all life on the planet. Astronomers call the rate of the flow of radiant energy from the sun that reaches the earth through space the solar constant. At the top of the atmosphere, 1.367 kilowatts (kW) of the sun\'s energy falls on each square meter of the atmosphere. But not all this energy makes it to the earth\'s surface.',
       'Although the sun gives off a lot of visible light, the majority of our solar energy is from the invisible infrared band. As light passes through the atmosphere, most of the short wavelength rays and some portions of the infrared are absorbed. Clouds and airborne particles in the atmosphere reflect as much as 32% of the sun\'s energy. Clouds, dust, and water vapor absorb up to another 18%. This filtering process warms the atmosphere slightly. Under the least favorable conditions, up to half the incoming light does not even reach us! However, on a sunny day with the sun directly overhead, 60–75% of the incoming solar energy can reach the earth\'s surface.'
     ]
@@ -95,7 +141,7 @@ const TamboraEvent_1815 = {
   {
     id: 'sec-18-11',
     category: '18C',
-    numberBadge: '10',
+    numberBadge: '11',
     titleKo: '18.11 대기를 데우는 3가지 방식 (복사, 전도, 대류)',
     titleEn: '18.11 Warming the Atmosphere: Conduction, Convection & Radiation',
     breadcrumb: '18C · 18.11 Warming the Atmosphere · 대기 가열 방식',
@@ -177,7 +223,7 @@ const ConvectionHeat = {
   {
     id: 'sec-18-12',
     category: '18C',
-    numberBadge: '11',
+    numberBadge: '12',
     titleKo: '18.12 온실 효과 (The Greenhouse Effect) & 자외선과 생명',
     titleEn: '18.12 The Greenhouse Effect',
     breadcrumb: '18C · 18.12 The Greenhouse Effect · 온실 효과',
@@ -190,7 +236,7 @@ const ConvectionHeat = {
     ],
     interactiveSpec: {
       type: 'greenhouse_sim',
-      missionTitle: '미션 11 · 온실가스 농도에 따른 지구 열 포획 시뮬레이터',
+      missionTitle: '미션 12 · 온실가스 농도에 따른 지구 열 포획 시뮬레이터',
       missionNumber: '18-12',
       stepTotal: 4,
       tabs: [

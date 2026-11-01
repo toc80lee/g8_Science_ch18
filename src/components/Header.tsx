@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-3.5 h-3.5 bg-blue-600 rounded-sm" />
             <div className="flex items-center space-x-1.5 sm:space-x-2">
               <span className="font-bold text-gray-900 text-sm sm:text-base tracking-tight">Everystudy with Josh</span>
-              <span className="text-gray-500 text-xs sm:text-sm font-medium hidden md:inline">Chapter 18 지구의 대기</span>
+              <span className="text-gray-500 text-xs sm:text-sm font-medium hidden md:inline">18 지구의 대기</span>
             </div>
           </div>
         </div>
@@ -94,26 +94,26 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => onSelectTopTab('18A')}
               className={`pb-1 text-sm transition-colors cursor-pointer ${
-                activeTopTab === '18A' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
+                activeTopTab === '18A' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              18A 대기란?
+              18A
             </button>
             <button
               onClick={() => onSelectTopTab('18B')}
               className={`pb-1 text-sm transition-colors cursor-pointer ${
-                activeTopTab === '18B' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
+                activeTopTab === '18B' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              18B 특별 구역
+              18B
             </button>
             <button
               onClick={() => onSelectTopTab('18C')}
               className={`pb-1 text-sm transition-colors cursor-pointer ${
-                activeTopTab === '18C' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
+                activeTopTab === '18C' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              18C 대기 에너지
+              18C
             </button>
             <button
               onClick={() => onOpenGlossary('key-terms')}

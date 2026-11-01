@@ -32,14 +32,15 @@ import {
   Square,
   Headphones
 } from 'lucide-react';
+import { findBilingualCounterpart, cleanTerm } from '../utils/bilingualMatcher';
 
 interface TextbookReaderProps {
   section: ChapterSection;
   onAddCustomWord: (wordData: { word: string; meaning: string; contextSentence?: string; sourceSectionTitle?: string; sourcePage?: number }) => void;
   customWords: CustomWord[];
   highlights?: TextHighlight[];
-  onSaveHighlight?: (highlight: TextHighlight) => void;
-  onDeleteHighlight?: (id: string) => void;
+  onSaveHighlight?: (highlight: TextHighlight | TextHighlight[]) => void;
+  onDeleteHighlight?: (id: string | string[]) => void;
   onClearSectionHighlights?: (sectionId: string) => void;
 }
 
@@ -58,6 +59,9 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   
   // Toggle for textbook original image verification section below text
   const [isImageSectionExpanded, setIsImageSectionExpanded] = useState<boolean>(false);
+  
+  // Toggle for the primary textbook reader (Default: true / open as requested)
+  const [isTextbookExpanded, setIsTextbookExpanded] = useState<boolean>(true);
   
   // Selected text for custom vocabulary & highlighting
   const [selectedText, setSelectedText] = useState<string>('');
@@ -274,7 +278,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   }, [viewLayout, pageImages, isAddModalOpen, isHighlightListOpen, lightboxImage]);
 
   // Detect text selection in textbook (supports words and full sentences up to 350 chars)
-  const handleMouseUp = () => {
+  const handleSelectionCheck = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed) {
       if (!isAddModalOpen && !activeHighlightPopover) {
@@ -285,31 +289,84 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
     const text = selection.toString().trim();
     if (text.length > 0 && text.length < 350) {
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      
-      setSelectedText(text);
-      setActiveHighlightPopover(null);
-      setSelectionPos({
-        x: rect.left + rect.width / 2,
-        y: Math.max(10, rect.top - 12)
-      });
+      try {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          setSelectedText(text);
+          setActiveHighlightPopover(null);
+          setSelectionPos({
+            x: rect.left + rect.width / 2,
+            y: Math.max(10, rect.top - 12)
+          });
+        }
+      } catch {
+        setSelectionPos(null);
+      }
     } else {
       setSelectionPos(null);
     }
   };
 
+  const handleMouseUp = () => {
+    handleSelectionCheck();
+  };
+
+  // Document-level selection listener for mouse, touch (smartphones/tablets), and stylus
+  React.useEffect(() => {
+    const onDocMouseUp = () => {
+      // Small timeout allows browser selection to settle
+      setTimeout(handleSelectionCheck, 20);
+    };
+
+    document.addEventListener('mouseup', onDocMouseUp);
+    document.addEventListener('touchend', onDocMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', onDocMouseUp);
+      document.removeEventListener('touchend', onDocMouseUp);
+    };
+  }, [section.id, isAddModalOpen, activeHighlightPopover]);
+
   // Highlighting Action Handlers
   const handleApplyHighlight = (color: HighlightColor) => {
     if (!selectedText.trim()) return;
+    const cleanSelected = cleanTerm(selectedText);
+    const mainId = `hl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Look for bilingual counterpart in opposite language
+    const counterpart = findBilingualCounterpart(selectedText, section, customWords);
+    const counterpartId = counterpart ? `hl_${Date.now() + 1}_${Math.random().toString(36).substring(2, 7)}` : undefined;
+
     const newHighlight: TextHighlight = {
-      id: `hl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: mainId,
       sectionId: section.id,
-      text: selectedText.trim(),
+      text: cleanSelected || selectedText.trim(),
       color,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      counterpartId: counterpartId
     };
-    onSaveHighlight?.(newHighlight);
+
+    const toSave: TextHighlight[] = [newHighlight];
+
+    if (counterpart && counterpart.text && counterpartId) {
+      const counterpartHighlight: TextHighlight = {
+        id: counterpartId,
+        sectionId: section.id,
+        text: counterpart.text,
+        color,
+        createdAt: new Date().toISOString(),
+        counterpartId: mainId
+      };
+      toSave.push(counterpartHighlight);
+
+      // Auto-switch to 'side-by-side' (한영 대조) mode so child immediately sees both highlights together!
+      if (langMode !== 'side-by-side') {
+        setLangMode('side-by-side');
+      }
+    }
+    
+    // Save atomically in a single batch
+    onSaveHighlight?.(toSave);
     
     const colorLabel = 
       color === 'yellow' ? '노랑 형광펜' :
@@ -317,8 +374,12 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
       color === 'pink' ? '핑크 형광펜' :
       color === 'underline-red' ? '빨간색 밑줄' : '파란색 밑줄';
 
-    setToastMessage(`✓ ${colorLabel}으로 중요 표시되었습니다!`);
-    setTimeout(() => setToastMessage(null), 2500);
+    if (counterpart && counterpart.text) {
+      setToastMessage(`✓ 한·영 동시 표시: "${cleanSelected}" ↔ "${counterpart.text}" 에 ${colorLabel}이 함께 적용되었습니다! (한·영 대조 뷰로 나란히 확인)`);
+    } else {
+      setToastMessage(`✓ ${colorLabel}으로 중요 표시되었습니다!`);
+    }
+    setTimeout(() => setToastMessage(null), 3500);
     
     window.getSelection()?.removeAllRanges();
     setSelectionPos(null);
@@ -327,14 +388,42 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
   const handleUpdateHighlightColor = (highlight: TextHighlight, newColor: HighlightColor) => {
     const updated = { ...highlight, color: newColor };
-    onSaveHighlight?.(updated);
+    const toUpdate: TextHighlight[] = [updated];
+
+    // If there is a linked counterpart, update its color too!
+    if (highlight.counterpartId) {
+      const counterpart = sectionHighlights.find(h => h.id === highlight.counterpartId);
+      if (counterpart) {
+        toUpdate.push({ ...counterpart, color: newColor });
+      }
+    } else {
+      const paired = sectionHighlights.find(h => h.counterpartId === highlight.id);
+      if (paired) {
+        toUpdate.push({ ...paired, color: newColor });
+      }
+    }
+
+    onSaveHighlight?.(toUpdate);
     setActiveHighlightPopover(null);
     setToastMessage('표시 색상이 변경되었습니다.');
     setTimeout(() => setToastMessage(null), 2000);
   };
 
   const handleDeleteHighlightItem = (id: string) => {
-    onDeleteHighlight?.(id);
+    const hl = sectionHighlights.find(h => h.id === id);
+    const idsToDelete: string[] = [id];
+
+    // If there is a linked counterpart, delete it too!
+    if (hl?.counterpartId) {
+      idsToDelete.push(hl.counterpartId);
+    } else if (hl) {
+      const paired = sectionHighlights.find(h => h.counterpartId === hl.id);
+      if (paired) {
+        idsToDelete.push(paired.id);
+      }
+    }
+
+    onDeleteHighlight?.(idsToDelete);
     setActiveHighlightPopover(null);
     setToastMessage('하이라이트가 삭제되었습니다.');
     setTimeout(() => setToastMessage(null), 2000);
@@ -363,12 +452,15 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
     
     // Sort highlights by length descending to match longer phrases first
     const relevantHighlights = [...sectionHighlights].sort((a, b) => b.text.length - a.text.length);
+    const lowerPara = paragraphText.toLowerCase();
 
     for (const hl of relevantHighlights) {
       if (!hl.text || hl.text.length < 2) continue;
+      const lowerHl = hl.text.toLowerCase();
       let searchPos = 0;
       while (searchPos < paragraphText.length) {
-        const idx = paragraphText.indexOf(hl.text, searchPos);
+        // Case-insensitive match so English capitalization differences match seamlessly
+        const idx = lowerPara.indexOf(lowerHl, searchPos);
         if (idx === -1) break;
         const end = idx + hl.text.length;
         
@@ -474,10 +566,10 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   const renderTTSAudioBar = (isCompact = false) => (
     <div className="bg-gradient-to-r from-blue-50 via-indigo-50/70 to-blue-50/40 border border-blue-200/80 rounded-xl p-3 sm:p-3.5 mb-4 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 transition-all">
       <div className="flex items-center space-x-2.5">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white transition-all shadow-2xs shrink-0 ${
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white transition-all shadow-2xs shrink-0 ${
           ttsState.isPlaying ? 'bg-indigo-600 animate-pulse' : 'bg-blue-600'
         }`}>
-          <Headphones className="w-4 h-4" />
+          <Headphones className="w-5 h-5" />
         </div>
         <div>
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
@@ -596,7 +688,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
   };
 
   return (
-    <div className="my-6 space-y-4" ref={containerRef} onMouseUp={handleMouseUp}>
+    <div id="textbook-reader-container" className="my-6 space-y-4" ref={containerRef} onMouseUp={handleMouseUp}>
       {/* Toast notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-2.5 rounded-lg shadow-xl text-xs sm:text-sm flex items-center space-x-2 border border-gray-700 animate-in fade-in slide-in-from-bottom-3 duration-300">
@@ -606,97 +698,109 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
       )}
 
       {/* Floating Selection Tooltip (Highlighting & Dictionary) */}
-      {selectionPos && selectedText && (
-        <div
-          style={{
-            position: 'fixed',
-            left: `${selectionPos.x}px`,
-            top: `${selectionPos.y}px`,
-            transform: 'translate(-50%, -100%)',
-            zIndex: 50
-          }}
-          className="animate-in fade-in zoom-in-95 duration-150 flex items-center bg-gray-900/95 backdrop-blur-sm text-white px-2 py-1.5 rounded-full shadow-2xl border border-gray-700 space-x-1.5"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {/* Highlighter Color Buttons */}
-          <div className="flex items-center space-x-1 pl-1 pr-1.5 border-r border-gray-700">
-            <button
-              title="노랑 형광펜으로 칠하기"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleApplyHighlight('yellow');
-              }}
-              className="w-5 h-5 rounded-full bg-amber-300 hover:scale-115 transition-transform border border-amber-400 shadow-2xs cursor-pointer"
-            />
-            <button
-              title="민트 형광펜으로 칠하기"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleApplyHighlight('mint');
-              }}
-              className="w-5 h-5 rounded-full bg-emerald-400 hover:scale-115 transition-transform border border-emerald-500 shadow-2xs cursor-pointer"
-            />
-            <button
-              title="핑크 형광펜으로 칠하기"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleApplyHighlight('pink');
-              }}
-              className="w-5 h-5 rounded-full bg-pink-400 hover:scale-115 transition-transform border border-pink-500 shadow-2xs cursor-pointer"
-            />
-          </div>
-
-          {/* Underline Buttons */}
-          <div className="flex items-center space-x-1 pr-1.5 border-r border-gray-700">
-            <button
-              title="빨간색 밑줄 긋기"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleApplyHighlight('underline-red');
-              }}
-              className="px-1.5 py-0.5 rounded text-[11px] font-bold text-red-400 hover:bg-gray-800 underline decoration-red-500 decoration-2 transition-colors cursor-pointer"
-            >
-              빨강 밑줄
-            </button>
-            <button
-              title="파란색 밑줄 긋기"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleApplyHighlight('underline-blue');
-              }}
-              className="px-1.5 py-0.5 rounded text-[11px] font-bold text-blue-400 hover:bg-gray-800 underline decoration-blue-500 decoration-2 transition-colors cursor-pointer"
-            >
-              파랑 밑줄
-            </button>
-          </div>
-
-          {/* Add to Vocabulary */}
-          <button
-            title="나만의 단어장에 등록"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleOpenAddModal();
+      {selectionPos && selectedText && (() => {
+        const counterpart = findBilingualCounterpart(selectedText, section, customWords);
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              left: `${selectionPos.x}px`,
+              top: `${selectionPos.y}px`,
+              transform: 'translate(-50%, -100%)',
+              zIndex: 50
             }}
-            className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
+            className="animate-in fade-in zoom-in-95 duration-150 flex flex-col items-center select-none"
+            onMouseDown={(e) => e.stopPropagation()}
           >
-            <BookmarkPlus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">단어장</span>
-          </button>
+            {counterpart && (
+              <div className="mb-1.5 px-2.5 py-0.5 rounded-full bg-blue-600/95 text-white text-[11px] font-bold shadow-lg flex items-center space-x-1.5 border border-blue-400 backdrop-blur-xs">
+                <span>🔄 한·영 동시 매칭:</span>
+                <span className="text-yellow-300">"{counterpart.text}"</span>
+                <span className="text-[10px] text-blue-200">함께 표시됨</span>
+              </div>
+            )}
+            <div className="flex items-center bg-gray-900/95 backdrop-blur-sm text-white px-2 py-1.5 rounded-full shadow-2xl border border-gray-700 space-x-1.5">
+              {/* Highlighter Color Buttons */}
+              <div className="flex items-center space-x-1 pl-1 pr-1.5 border-r border-gray-700">
+                <button
+                  title="노랑 형광펜으로 칠하기"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleApplyHighlight('yellow');
+                  }}
+                  className="w-5 h-5 rounded-full bg-amber-300 hover:scale-115 transition-transform border border-amber-400 shadow-2xs cursor-pointer"
+                />
+                <button
+                  title="민트 형광펜으로 칠하기"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleApplyHighlight('mint');
+                  }}
+                  className="w-5 h-5 rounded-full bg-emerald-400 hover:scale-115 transition-transform border border-emerald-500 shadow-2xs cursor-pointer"
+                />
+                <button
+                  title="핑크 형광펜으로 칠하기"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleApplyHighlight('pink');
+                  }}
+                  className="w-5 h-5 rounded-full bg-pink-400 hover:scale-115 transition-transform border border-pink-500 shadow-2xs cursor-pointer"
+                />
+              </div>
 
-          {/* Close */}
-          <button
-            title="선택 닫기"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              window.getSelection()?.removeAllRanges();
-              setSelectionPos(null);
-            }}
-            className="p-1 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+              {/* Underline Buttons */}
+              <div className="flex items-center space-x-1 pr-1.5 border-r border-gray-700">
+                <button
+                  title="빨간색 밑줄 긋기"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleApplyHighlight('underline-red');
+                  }}
+                  className="px-1.5 py-0.5 rounded text-[11px] font-bold text-red-400 hover:bg-gray-800 underline decoration-red-500 decoration-2 transition-colors cursor-pointer"
+                >
+                  빨강 밑줄
+                </button>
+                <button
+                  title="파란색 밑줄 긋기"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleApplyHighlight('underline-blue');
+                  }}
+                  className="px-1.5 py-0.5 rounded text-[11px] font-bold text-blue-400 hover:bg-gray-800 underline decoration-blue-500 decoration-2 transition-colors cursor-pointer"
+                >
+                  파랑 밑줄
+                </button>
+              </div>
+
+              {/* Add to Vocabulary */}
+              <button
+                title="나만의 단어장에 등록"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleOpenAddModal();
+                }}
+                className="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
+              >
+                <BookmarkPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">단어장</span>
+              </button>
+
+              {/* Close */}
+              <button
+                title="선택 닫기"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  window.getSelection()?.removeAllRanges();
+                  setSelectionPos(null);
+                }}
+                className="p-1 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Active Highlight Click Popover (Change color, delete, or add to vocab) */}
       {activeHighlightPopover && (
@@ -780,179 +884,221 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
       )}
 
       {/* Top Header Card: Title + Mode Toggle Buttons */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs space-y-3">
+      <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-white border border-blue-200/80 rounded-xl p-4 shadow-2xs space-y-3 transition-all duration-200">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
-              <BookOpen className="w-5 h-5" />
-            </div>
+          <div 
+            onClick={() => setIsTextbookExpanded(prev => !prev)}
+            className="flex items-center space-x-3 cursor-pointer select-none group"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsTextbookExpanded(prev => !prev);
+              }}
+              className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
+              title={isTextbookExpanded ? '교재 본문 접기' : '교재 원문 완전 수록 & 시각 자료실 열기 (클릭 시 펼침)'}
+              aria-label="교재 본문 토글"
+            >
+              <BookOpen className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
+              <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-blue-700 border border-blue-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isTextbookExpanded ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-3 h-3" />
+              </span>
+            </button>
             <div>
-              <h3 className="font-bold text-gray-900 text-sm sm:text-base flex items-center space-x-1.5">
+              <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-blue-700 transition-colors">
                 <span>교재 원문 완전 수록 & 시각 자료실</span>
-                <span className="text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                  p. {section.pages.join(', ')}
+                <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                  p. {section.pages.join(', ')} · 본문 완전 수록
                 </span>
-              </h3>
-              <p className="text-[11px] text-gray-500">
-                💡 교재 원본 고화질 삽화, 기온 곡선 그래프, 사진 및 한·영 텍스트를 한눈에 볼 수 있습니다.
+              </h4>
+              <p className="text-xs text-gray-500 mt-0.5">
+                교재 원본 고화질 삽화, 기온 곡선 그래프, 사진 및 한·영 텍스트를 한눈에 볼 수 있습니다.
               </p>
             </div>
           </div>
 
-          {/* View Layout Selector */}
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg text-xs font-semibold">
+          <div className="flex items-center space-x-2">
+            {/* View Layout Selector */}
+            <div className="flex items-center space-x-1 bg-white/90 border border-gray-200/80 p-1 rounded-lg text-xs font-semibold shadow-2xs">
+              <button
+                onClick={() => {
+                  setViewLayout('text');
+                  setIsTextbookExpanded(true);
+                }}
+                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                  viewLayout === 'text'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="텍스트 번역 및 해설 중심 모드"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>텍스트 본문</span>
+              </button>
+              <button
+                onClick={() => {
+                  setViewLayout('visual');
+                  setIsTextbookExpanded(true);
+                }}
+                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                  viewLayout === 'visual'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="원본 교재 고화질 사진 및 도표 중심 모드"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>교재 원본 삽화 ({pageImages.length}장)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setViewLayout('split');
+                  setIsTextbookExpanded(true);
+                }}
+                className={`hidden md:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
+                  viewLayout === 'split'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="텍스트 번역과 원본 삽화를 나란히 배치"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span>나란히 분할 보기</span>
+              </button>
+            </div>
+
+            {/* Toggle Button */}
             <button
-              onClick={() => setViewLayout('text')}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
-                viewLayout === 'text'
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="텍스트 번역 및 해설 중심 모드"
+              type="button"
+              onClick={() => setIsTextbookExpanded(prev => !prev)}
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
             >
-              <FileText className="w-3.5 h-3.5" />
-              <span>텍스트 본문</span>
-            </button>
-            <button
-              onClick={() => setViewLayout('visual')}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
-                viewLayout === 'visual'
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="원본 교재 고화질 사진 및 도표 중심 모드"
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-              <span>교재 원본 삽화 ({pageImages.length}장)</span>
-            </button>
-            <button
-              onClick={() => setViewLayout('split')}
-              className={`hidden md:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md transition-all cursor-pointer ${
-                viewLayout === 'split'
-                  ? 'bg-white text-blue-700 shadow-2xs font-bold'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="텍스트 번역과 원본 삽화를 나란히 배치"
-            >
-              <Columns className="w-3.5 h-3.5 text-emerald-600" />
-              <span>나란히 분할 보기</span>
+              <span>{isTextbookExpanded ? '본문 접기' : '본문 열기'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isTextbookExpanded ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Sub toolbar: Language selector & Word add button (hidden in visual mode) or Visual mode page controls */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-100 text-xs">
-          {/* Quick Page Preview Badges / Selector */}
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-bold text-gray-500">
-              {viewLayout === 'visual' ? '교재 페이지 선택:' : '포함 페이지:'}
-            </span>
-            <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-              {pageImages.map((img, idx) => (
-                <button
-                  key={img.pageNumber}
-                  onClick={() => {
-                    setActivePageIndex(idx);
-                    setIsImageSectionExpanded(true);
-                  }}
-                  className={`px-2.5 py-1 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
-                    safePageIndex === idx
-                      ? 'bg-blue-600 border-blue-600 text-white font-bold shadow-2xs'
-                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
-                  title={`p.${img.pageNumber} ${img.title}`}
-                >
-                  <ImageIcon className={`w-3 h-3 ${safePageIndex === idx ? 'text-white' : 'text-blue-500'}`} />
-                  <span>p.{img.pageNumber} 원본 삽화</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Text-mode controls: Only visible in text or split mode */}
-          {viewLayout !== 'visual' ? (
+        {isTextbookExpanded && (
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-blue-100 text-xs animate-in fade-in duration-150">
+            {/* Quick Page Preview Badges / Selector */}
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => handleOpenAddModal('')}
-                className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>단어 직접 등록</span>
-              </button>
-
-              {/* Highlight list / reviewer button */}
-              <button
-                onClick={() => setIsHighlightListOpen(true)}
-                className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
-                title="본문 형광펜·밑줄 표시 목록 열기"
-              >
-                <Highlighter className="w-3 h-3 text-amber-600" />
-                <span>형광펜·밑줄 ({sectionHighlights.length})</span>
-              </button>
-
-              {/* Language Toggle */}
-              <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
-                <button
-                  onClick={() => setLangMode('ko')}
-                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                    langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  한글 번역
-                </button>
-                <button
-                  onClick={() => setLangMode('en')}
-                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                    langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  영어 원문
-                </button>
-                <button
-                  onClick={() => setLangMode('side-by-side')}
-                  className={`px-2 py-0.5 rounded transition-colors cursor-pointer ${
-                    langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  한·영 대조
-                </button>
+              <span className="text-[11px] font-bold text-gray-500">
+                {viewLayout === 'visual' ? '교재 페이지 선택:' : '포함 페이지:'}
+              </span>
+              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                {pageImages.map((img, idx) => (
+                  <button
+                    key={img.pageNumber}
+                    onClick={() => {
+                      setActivePageIndex(idx);
+                      setIsImageSectionExpanded(true);
+                    }}
+                    className={`px-2.5 py-1 rounded border text-[11px] font-medium transition-colors cursor-pointer flex items-center space-x-1 ${
+                      safePageIndex === idx
+                        ? 'bg-blue-600 border-blue-600 text-white font-bold shadow-2xs'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                    title={`p.${img.pageNumber} ${img.title}`}
+                  >
+                    <ImageIcon className={`w-3 h-3 ${safePageIndex === idx ? 'text-white' : 'text-blue-500'}`} />
+                    <span>p.{img.pageNumber} 원본 삽화</span>
+                  </button>
+                ))}
               </div>
             </div>
-          ) : (
-            /* Visual-mode: Page navigation header controls (Next/Prev) */
-            pageImages.length > 1 && (
+
+            {/* Text-mode controls: Only visible in text or split mode */}
+            {viewLayout !== 'visual' ? (
               <div className="flex items-center space-x-2">
-                <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
-                  페이지 넘기기:
-                </span>
-                <div className="flex items-center space-x-1">
+                {/* Language Toggle: Now positioned before Add Word and Highlights */}
+                <div className="flex items-center space-x-1 border border-gray-200 rounded-md bg-gray-50 p-0.5">
                   <button
-                    onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
-                    disabled={safePageIndex === 0}
-                    className="px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
-                    title="이전 페이지 (단축키: ←)"
+                    onClick={() => setLangMode('ko')}
+                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                      langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>이전장</span>
+                    한글
                   </button>
-                  <span className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded">
-                    {safePageIndex + 1} / {pageImages.length}
-                  </span>
                   <button
-                    onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
-                    disabled={safePageIndex >= pageImages.length - 1}
-                    className="px-2.5 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
-                    title="다음 페이지 (단축키: →)"
+                    onClick={() => setLangMode('en')}
+                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                      langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
-                    <span>다음장</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    영어
+                  </button>
+                  <button
+                    onClick={() => setLangMode('side-by-side')}
+                    className={`px-2.5 py-1 text-xs rounded transition-colors cursor-pointer ${
+                      langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    한영
                   </button>
                 </div>
+
+                <button
+                  onClick={() => handleOpenAddModal('')}
+                  className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>단어 직접 등록</span>
+                </button>
+
+                {/* Highlight list / reviewer button */}
+                <button
+                  onClick={() => setIsHighlightListOpen(true)}
+                  className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
+                  title="본문 형광펜·밑줄 표시 목록 열기"
+                >
+                  <Highlighter className="w-3 h-3 text-amber-600" />
+                  <span>형광펜·밑줄 ({sectionHighlights.length})</span>
+                </button>
               </div>
-            )
-          )}
-        </div>
+            ) : (
+              /* Visual-mode: Page navigation header controls (Next/Prev) */
+              pageImages.length > 1 && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-[11px] font-semibold text-gray-500 hidden sm:inline">
+                    페이지 넘기기:
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setActivePageIndex(prev => Math.max(0, prev - 1))}
+                      disabled={safePageIndex === 0}
+                      className="px-2.5 py-1 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                      title="이전 페이지 (단축키: ←)"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>이전장</span>
+                    </button>
+                    <span className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded">
+                      {safePageIndex + 1} / {pageImages.length}
+                    </span>
+                    <button
+                      onClick={() => setActivePageIndex(prev => Math.min(pageImages.length - 1, prev + 1))}
+                      disabled={safePageIndex >= pageImages.length - 1}
+                      className="px-2.5 py-1 rounded border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-30 disabled:cursor-not-allowed flex items-center space-x-1 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                      title="다음 페이지 (단축키: →)"
+                    >
+                      <span>다음장</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Primary Textbook Content Body - Collapsible (Default: Open) */}
+      {isTextbookExpanded && (
+        <div className="space-y-4 animate-in fade-in duration-200">
 
       {/* ======================================================== */}
       {/* 1. VISUAL MODE: Single-Page High-Res Viewer with Flipping */}
@@ -1333,12 +1479,27 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
           {pageImages.length > 0 && (
             <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-white border border-blue-200/80 rounded-xl p-4 shadow-2xs">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs">
-                    <ImageIcon className="w-4 h-4" />
-                  </div>
+                <div 
+                  onClick={() => setIsImageSectionExpanded((prev) => !prev)}
+                  className="flex items-center space-x-3 cursor-pointer select-none group"
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsImageSectionExpanded((prev) => !prev);
+                    }}
+                    className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center font-bold shadow-xs shrink-0 cursor-pointer transition-all relative group/btn"
+                    title={isImageSectionExpanded ? '교재 원본 삽화 접기' : '교재 원본 삽화 확인하기 (클릭 시 펼침)'}
+                    aria-label="교재 원본 삽화 토글"
+                  >
+                    <ImageIcon className="w-5 h-5 transition-transform group-hover/btn:scale-110" />
+                    <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-white text-blue-700 border border-blue-200 flex items-center justify-center shadow-xs transition-transform duration-200 ${isImageSectionExpanded ? 'rotate-180' : ''}`}>
+                      <ChevronDown className="w-3 h-3" />
+                    </span>
+                  </button>
                   <div>
-                    <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5">
+                    <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-blue-700 transition-colors">
                       <span>교재 원본과 내용 확인하기</span>
                       <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
                         p. {section.pages.join(', ')} 고화질 삽화 & 도표 ({pageImages.length}장)
@@ -1351,13 +1512,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setIsImageSectionExpanded((prev) => !prev)}
-                    className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-blue-700 font-bold text-xs border border-blue-300 shadow-2xs transition-colors cursor-pointer flex items-center space-x-1"
-                  >
-                    <span>{isImageSectionExpanded ? '교재 삽화 접기' : '교재 원본 삽화 확인하기'}</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isImageSectionExpanded ? 'rotate-180' : ''}`} />
-                  </button>
                   <button
                     onClick={() => setViewLayout('visual')}
                     className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center space-x-1"
@@ -1402,6 +1556,8 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               )}
             </div>
           )}
+        </div>
+      )}
         </div>
       )}
 

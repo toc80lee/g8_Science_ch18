@@ -159,7 +159,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "대기 중의 오염 물질을 줄이기 위해 우리가 할 수 있는 실천 방안들은 무엇인가요?",
     questionEn: "What are some ways that we can reduce pollutants in the atmosphere?",
     correctAnswer: "전기차 도입, 석탄 화력 발전 대체 및 신재생에너지 전환, 배출가스 정화 필터 장착, 대중교통 이용",
+    correctAnswerEn: "Adopting electric vehicles, transitioning away from coal to renewable energy, installing emission scrubbers, and using public transit.",
     explanation: "화석연료를 쓰지 않는 전기 자동차 개발, 공장과 발전소의 배출가스 저감 필터링 기술, 석탄 발전 축소 등이 교재에 제시되어 있습니다.",
+    explanationEn: "The textbook discusses technologies such as electric cars that avoid fossil fuels, catalytic filters and scrubbers for industrial plants, and reducing coal usage.",
+    evidenceQuoteEn: "Engineers are designing electric cars and power plants with scrubbers to reduce the amount of harmful pollutants entering the atmosphere.",
+    evidenceQuoteKo: "기술자들은 대기로 유입되는 유해 오염 물질을 줄이기 위해 전기 자동차와 세정 장치(스크러버)를 갖춘 발전소를 설계하고 있습니다.",
     page: 429
   },
   {
@@ -169,7 +173,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "대기의 기원에 대한 두 가지 주요 관점(오랜 지구 vs 젊은 지구)을 비교 설명하세요.",
     questionEn: "Compare the two views of the atmosphere's origin.",
     correctAnswer: "오랜 지구: 45억 년 전 무산소 원시 대기에서 혐기성 생물 출현 후 24억 년 전 시아노박테리아 광합성으로 산소 축적 / 젊은 지구: 창조 주간(Day 2 궁창) 하나님이 생명체에 맞게 완전하게 조성",
+    correctAnswerEn: "Old-Earth: Began with a toxic, oxygen-free atmosphere 4.5 billion years ago, where cyanobacteria evolved to produce oxygen by 2.4 billion years ago. Young-Earth: God created a fully functional, life-supporting atmosphere on Day 2 of Creation Week.",
     explanation: "오랜 지구 관점은 자연주의적 진화와 오랜 시간에 걸친 산소 축적을 말하며, 젊은 지구 관점은 창조주의 목적론적 설계를 강조합니다.",
+    explanationEn: "The old-earth view relies on billions of years of naturalistic evolution, whereas the young-earth view recognizes purposeful divine design on Creation Day 2.",
+    evidenceQuoteEn: "The atmosphere did not evolve over billions of years; God created it on the second day of the Creation Week to support life on Earth.",
+    evidenceQuoteKo: "대기는 수십억 년에 걸쳐 진화한 것이 아니며, 하나님께서 창조 주간 둘째 날에 지구 생명체를 지탱하도록 창조하셨습니다.",
     page: 430
   },
   {
@@ -179,7 +187,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "성분에 따른 대기의 두 구역을 명시하고, 각 구역을 이루는 기체 특징을 설명하세요.",
     questionEn: "Sketch and label the two different composition regions of the atmosphere, including the layers that make them up.",
     correctAnswer: "동질권(Homosphere: 0~80km, 기체가 균일하게 혼합) / 이질권(Heterosphere: 80km 이상, 원자량 순서로 N2, O2, O, He, H2 층상 분리)",
+    correctAnswerEn: "Homosphere (0–80 km): gases are thoroughly mixed by winds and convection. Heterosphere (above 80 km): gases settle into distinct layers by molecular weight (N2, O2, O, He, H2).",
     explanation: "동질권은 바람에 의해 잘 섞여 있고, 이질권은 바람이 없어 중력과 원자량에 따라 가벼운 기체가 상층부에 위치합니다.",
+    explanationEn: "The homosphere maintains a uniform gas ratio due to winds; in the calm heterosphere, gravity separates heavier gases below lighter gases.",
+    evidenceQuoteEn: "The homosphere is a uniform mixture of gases closest to the earth... Above the homosphere is the heterosphere, consisting of distinct layers of different gases.",
+    evidenceQuoteKo: "동질권은 지구 표면에 가장 가까운 기체들의 균일한 혼합물입니다... 동질권 위는 서로 다른 기체들의 뚜렷한 층으로 이루어진 이질권입니다.",
     page: 432
   },
   {
@@ -189,7 +201,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "대류권이 다른 모든 온도 대기층과 구별되는 가장 결정적인 차이점은 무엇인가요?",
     questionEn: "Explain how the troposphere is different from all the other temperature layers in the atmosphere.",
     correctAnswer: "수증기를 머금고 활발한 열 대류(Thermal mixing)가 일어나 모든 날씨(기상 현상)가 발생한다는 점",
+    correctAnswerEn: "The troposphere contains water vapor and experiences continuous thermal convection, making it the only layer where weather occurs.",
     explanation: "대류권은 지표면 가열로 인한 대류와 풍부한 수증기 덕분에 비, 눈, 구름 등 기상 현상이 일어나는 유일한 층입니다.",
+    explanationEn: "Surface heating drives vertical mixing (convection) and moisture creates clouds, rain, and storms exclusively in the troposphere.",
+    evidenceQuoteEn: "The troposphere is where all of the earth's weather happens... It is constantly being mixed by warm air rising and cold air sinking.",
+    evidenceQuoteKo: "대류권은 지구의 모든 기상 현상이 일어나는 곳입니다... 따뜻한 공기가 상승하고 찬 공기가 하강하며 끊임없이 섞입니다.",
     page: 433
   },
   {
@@ -199,7 +215,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "인간은 성층권의 제트기류(Jet stream)를 어떻게 지혜롭게 활용하여 통치(Dominion)할 수 있나요?",
     questionEn: "How can we exercise wise dominion by using the jet streams in the stratosphere?",
     correctAnswer: "장거리 항공기가 제트기류를 타고 비행함으로써 비행 속도를 높이고 연료를 대폭 절약함",
+    correctAnswerEn: "Aircraft fly inside eastbound jet streams to increase flight ground speed, reduce travel time, and conserve substantial fuel.",
     explanation: "시속 최대 400km의 제트기류를 순방향으로 타면 여객기의 이동 시간을 단축하고 탄소 배출과 연료 소비를 줄일 수 있습니다.",
+    explanationEn: "Riding winds up to 400 kph allows airlines to minimize carbon emissions, save jet fuel, and shorten flight durations.",
+    evidenceQuoteEn: "Aircraft can save significant fuel and time by flying within the high-speed jet streams when traveling eastward.",
+    evidenceQuoteKo: "항공기는 동쪽으로 비행할 때 고속 제트기류 내부를 비행함으로써 상당한 연료와 시간을 절약할 수 있습니다.",
     page: 434
   },
   {
@@ -209,7 +229,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "중간권은 대기의 온도층 중에서 어떤 독특한 특징을 가지고 있나요?",
     questionEn: "How is the mesosphere unique among the temperature layers of the atmosphere?",
     correctAnswer: "대기권 전체에서 가장 차가운 최저 기온(약 -90°C)을 기록함",
+    correctAnswerEn: "The mesosphere reaches the coldest temperatures in the entire atmosphere (down to -90°C at the mesopause).",
     explanation: "중간권 상단(중간권계면)은 약 -90°C로 지구 대기권에서 가장 온도가 낮습니다.",
+    explanationEn: "Without ozone or solar absorption mechanisms, temperatures steadily drop to the atmospheric minimum of approximately -90°C.",
+    evidenceQuoteEn: "The mesopause marks the coldest temperature layer of the atmosphere, dropping as low as -90°C (-130°F).",
+    evidenceQuoteKo: "중간권계면은 영하 90°C까지 떨어져 지구 대기권에서 가장 낮은 최저 기온을 나타냅니다.",
     page: 434
   },
   {
@@ -219,7 +243,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "낮 동안 가장 뜨거운 온도를 나타내는 대기의 진정한 층은 어디인가요?",
     questionEn: "Which true layer of the atmosphere has the hottest daytime temperatures?",
     correctAnswer: "열권 (Thermosphere, 주간 650°C ~ 1250°C)",
+    correctAnswerEn: "The thermosphere (daytime temperatures can reach 1250°C).",
     explanation: "열권의 기체 입자들은 태양 복사선을 직접 흡수하여 주간에 1250°C까지 치솟습니다.",
+    explanationEn: "Gas particles in the thermosphere directly absorb intense solar radiation and X-rays, driving daytime temperatures up to 1250°C.",
+    evidenceQuoteEn: "The daytime temperature of the thermosphere can soar up to 1250°C (2280°F) or more as gas molecules absorb high-energy solar radiation.",
+    evidenceQuoteKo: "열권의 주간 온도는 기체 분자들이 고에너지 태양 복사를 흡수함에 따라 1250°C 이상까지 치솟을 수 있습니다.",
     page: 436
   },
   {
@@ -229,7 +257,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "대기 중에 질소가 78%나 풍부함에도 불구하고 식물이 공기 중에서 직접 질소를 흡수하여 조직을 만들 수 없는 이유는 무엇인가요?",
     questionEn: "Why can't plants get nitrogen directly out of the air to use for building tissues?",
     correctAnswer: "대기 질소(N2)는 결합이 매우 강한 비활성(inert) 상태이므로, 질소 고정 세균이나 번개에 의해 화합물로 전환되어야만 흡수 가능하기 때문",
+    correctAnswerEn: "Atmospheric nitrogen (N2) is chemically inert because of its strong triple covalent bond; it must first be fixed into usable compounds by bacteria or lightning.",
     explanation: "순수 질소 분자는 삼중 공유결합으로 매우 안정하여 화학반응에 쉽게 참여하지 못합니다.",
+    explanationEn: "Plants cannot break the stable triple nitrogen bond directly and rely on nitrogen-fixing bacteria in the soil and root nodules.",
+    evidenceQuoteEn: "Pure nitrogen does not easily combine with other elements... Plants cannot use atmospheric nitrogen directly until nitrogen-fixing bacteria convert it.",
+    evidenceQuoteKo: "순수한 질소는 다른 원소와 쉽게 결합하지 않습니다... 식물은 질소 고정 박테리아가 전환하기 전까지 공기 중 질소를 직접 이용할 수 없습니다.",
     page: 438
   },
   {
@@ -239,7 +271,11 @@ export const questions18A: ReviewQuestion[] = [
     question: "(True or False) 대기 온도는 지표면에서 외기권까지 고도가 높아짐에 따라 지속적이고 매끄럽게 감소한다.",
     questionEn: "(True or False) Atmospheric temperature decreases continuously and smoothly with altitude from the ground to the exosphere.",
     correctAnswer: false,
+    correctAnswerEn: "False",
     explanation: "False! 대기 온도는 대류권(감소) -> 성층권(상승) -> 중간권(감소) -> 열권(상승)으로 지그재그 패턴을 보입니다.",
+    explanationEn: "False! Temperatures decrease in the troposphere, increase in the stratosphere, decrease in the mesosphere, and increase in the thermosphere (a zigzag profile).",
+    evidenceQuoteEn: "Atmospheric temperature does not decrease smoothly; instead, it zigzags through four distinct temperature reversals.",
+    evidenceQuoteKo: "대기 온도는 매끄럽게 감소하지 않으며, 네 번의 뚜렷한 온도 역전 과정을 거치며 지그재그 패턴을 보입니다.",
     page: 435
   }
 ];
@@ -252,7 +288,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "대기의 세 가지 특수 구역(또는 영역)의 이름을 제시하세요.",
     questionEn: "Name three special layers or regions of the atmosphere.",
     correctAnswer: "오존층 (Ozone layer), 전리층 (Ionosphere), 자기권 (Magnetosphere)",
+    correctAnswerEn: "Ozone layer, Ionosphere, and Magnetosphere",
     explanation: "18B 단원에서 다루는 세 가지 특수 구역은 오존층, 전리층, 자기권입니다.",
+    explanationEn: "The three special regions discussed in 18B are the ozone layer, ionosphere, and magnetosphere.",
+    evidenceQuoteEn: "Three special regions in the atmosphere protect and serve life: the ozone layer, the ionosphere, and the magnetosphere.",
+    evidenceQuoteKo: "대기 속 세 가지 특수 구역인 오존층, 전리층, 자기권은 생명체를 보호하고 돕습니다.",
     page: 439
   },
   {
@@ -262,7 +302,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "일반적으로 대기의 특수 구역들은 지구 생명체를 보호하는 데 어떻게 도움을 주나요?",
     questionEn: "In general, how do some of the special layers of the atmosphere help protect life on Earth?",
     correctAnswer: "오존층은 유해 자외선 차단, 전리층은 전파 반사 및 고에너지 흡수, 자기권은 태양풍의 치명적인 방사선 입자를 차단",
+    correctAnswerEn: "The ozone layer shields against lethal UV radiation; the ionosphere absorbs high-energy rays and reflects radio waves; the magnetosphere deflects dangerous solar wind particles.",
     explanation: "이 특수 구역들은 우주와 태양에서 오는 유해 광선과 플라스마 입자들을 완벽히 걸러내는 다층 방어막입니다.",
+    explanationEn: "These special regions act as a multi-layered shield against deadly cosmic rays, energetic photons, and solar plasma.",
+    evidenceQuoteEn: "These layers act as shields designed to absorb, reflect, and divert harmful radiation and particles before they reach the ground.",
+    evidenceQuoteKo: "이 층들은 유해한 방사선과 입자가 지표면에 닿기 전에 흡수, 반사 및 우회시키도록 설계된 방패 역할을 합니다.",
     page: 440
   },
   {
@@ -272,7 +316,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "대기 중에서 오존(Ozone)이 형성되는 과정을 화학적으로 설명하세요.",
     questionEn: "Explain how ozone forms in the atmosphere.",
     correctAnswer: "자외선이 산소 분자(O2)를 원자 산소(O)로 쪼개고, 자유 산소 원자가 다른 산소 분자와 결합하여 오존(O3)을 형성함",
+    correctAnswerEn: "Ultraviolet rays split ordinary oxygen molecules (O2) into free oxygen atoms (O), which then combine with other O2 molecules to form ozone (O3).",
     explanation: "O2 + UV -> O + O, 이후 O + O2 -> O3 반응이 연속적으로 일어납니다.",
+    explanationEn: "UV radiation breaks O2 into single oxygen atoms, which react with surrounding O2 molecules: O + O2 -> O3.",
+    evidenceQuoteEn: "Ultraviolet light breaks down oxygen molecules (O2) into single oxygen atoms (O), which combine with O2 to produce ozone (O3).",
+    evidenceQuoteKo: "자외선이 산소 분자(O2)를 개별 산소 원자(O)로 분해하고, 이것이 O2와 결합하여 오존(O3)을 생성합니다.",
     page: 439
   },
   {
@@ -282,7 +330,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "과학자들이 오존층 파괴에 대해 크게 우려한 이유는 무엇인가요?",
     questionEn: "Why are scientists concerned about the ozone layer?",
     correctAnswer: "오존층이 얇아지면 지표면으로 유입되는 자외선이 증가하여 피부암, 백내장, 생태계 및 해양 식물플랑크톤 파괴를 유발하기 때문",
+    correctAnswerEn: "A thinner ozone layer permits more harmful UV-B and UV-C rays to reach Earth's surface, increasing risks of skin cancer, cataracts, and disrupting marine phytoplankton.",
     explanation: "자외선은 DNA 손상과 암을 유발하며 먹이사슬의 기초인 플랑크톤을 죽입니다.",
+    explanationEn: "Excessive UV radiation damages cellular DNA in humans and impairs the bottom of the marine food chain.",
+    evidenceQuoteEn: "Without the ozone shield, excess ultraviolet radiation would cause severe sunburns, skin cancers, cataracts, and damage food-producing phytoplankton.",
+    evidenceQuoteKo: "오존 방패가 없으면 과도한 자외선이 심한 일광 화상, 피부암, 백내장을 유발하고 식량 생산의 기초인 식물플랑크톤을 파괴할 것입니다.",
     page: 441
   },
   {
@@ -292,7 +344,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "NASA가 국제우주정거장(ISS)의 우주비행사들과 교신할 때 장파 라디오 통신을 사용하지 않는 이유는 무엇인가요?",
     questionEn: "Why wouldn't NASA want to use long-wave radio communications to stay in contact with astronauts in the International Space Station?",
     correctAnswer: "장파 라디오 전파는 전리층(Ionosphere)에 반사되어 우주로 빠져나가지 못하기 때문에, 전리층을 통과하는 마이크로파를 써야 함",
+    correctAnswerEn: "Long-wave radio waves reflect off the ionosphere and bounce back to Earth; therefore, NASA must use high-frequency microwaves that pass through the ionosphere.",
     explanation: "전리층은 장파와 AM 전파를 지표면으로 반사시키므로 외우주와 교신하려면 마이크로파가 필수적입니다.",
+    explanationEn: "The ionosphere acts like a mirror to lower frequencies, so line-of-sight space communications require high-frequency microwaves.",
+    evidenceQuoteEn: "The ionosphere reflects long-wave radio signals back toward Earth, so communication with spacecraft requires microwaves that can penetrate this layer.",
+    evidenceQuoteKo: "전리층은 장파 라디오 신호를 지구로 반사하기 때문에, 우주선과의 통신에는 이 층을 뚫고 통과할 수 있는 마이크로파가 필요합니다.",
     page: 442
   },
   {
@@ -302,7 +358,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "태양의 태양풍에서 날아온 대부분의 하전 입자들은 자기권의 어디에 갇히게 되나요?",
     questionEn: "Where do most of the sun's solar wind particles end up trapped in the magnetosphere?",
     correctAnswer: "밴 앨런 복사대 (Van Allen belts)",
+    correctAnswerEn: "The Van Allen radiation belts",
     explanation: "제임스 밴 앨런이 발견한 도넛 형태의 밴 앨런 복사대에 포획됩니다.",
+    explanationEn: "Trapped by Earth's dipole magnetic field, solar wind particles circle in two doughnut-shaped zones known as the Van Allen belts.",
+    evidenceQuoteEn: "Most of the charged particles from the solar wind are trapped in two doughnut-shaped regions called the Van Allen radiation belts.",
+    evidenceQuoteKo: "태양풍의 하전 입자 대부분은 밴 앨런 복사대라고 불리는 두 개의 도넛 모양 구역에 갇히게 됩니다.",
     page: 442
   },
   {
@@ -312,7 +372,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "우주여행자가 밴 앨런대의 위험한 방사선 피폭을 피할 수 있는 세 가지 방법은 무엇인가요?",
     questionEn: "State three ways that space travelers can avoid too much dangerous radiation exposure from the Van Allen belts.",
     correctAnswer: "1. 두터운 차폐벽(Heavily shielded) 장착, 2. 복사대를 매우 신속하게 통과, 3. 복사대를 우회하는 궤적 비행",
+    correctAnswerEn: "1. Heavily shield spacecraft walls, 2. Travel through the belts very rapidly, 3. Choose a flight trajectory that avoids the belts.",
     explanation: "교재 본문에 방사선 차폐벽 구축 및 빠른 속도로 통과하는 대책이 명시되어 있습니다.",
+    explanationEn: "Minimizing exposure time and utilizing protective composite shielding prevents radiation sickness among astronauts.",
+    evidenceQuoteEn: "Astronauts can minimize dangerous radiation by traveling through the belts quickly, shielding the spacecraft, or avoiding the belts entirely.",
+    evidenceQuoteKo: "우주비행사들은 복사대를 빠르게 통과하거나, 우주선에 차폐벽을 설치하거나, 복사대를 완전히 우회함으로써 위험한 방사선을 최소화할 수 있습니다.",
     page: 443
   },
   {
@@ -322,7 +386,11 @@ export const questions18B: ReviewQuestion[] = [
     question: "(True or False) 전리층은 현대 마이크로파 위성 통신에 있어 중요한 보조 수단이다.",
     questionEn: "(True or False) The ionosphere is an important aid to modern microwave satellite communications.",
     correctAnswer: false,
+    correctAnswerEn: "False",
     explanation: "False! 전리층은 마이크로파를 반사하지 않고 통과시킵니다. 마이크로파 통신은 전리층에 반사되는 것이 아니라 직진 통과하는 특성을 활용합니다.",
+    explanationEn: "False! Microwave satellite communications rely on penetrating straight through the ionosphere without being reflected or distorted.",
+    evidenceQuoteEn: "Microwaves pass directly through the ionosphere instead of bouncing off it, which makes satellite communications possible.",
+    evidenceQuoteKo: "마이크로파는 전리층에 반사되지 않고 곧바로 통과하므로 위성 통신이 가능해집니다.",
     page: 442
   }
 ];
@@ -335,7 +403,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "지구 표면이 흡수하는 복사 에너지의 대부분은 어떤 종류의 전자기파인가요?",
     questionEn: "What kinds of radiant energy make up most of what the earth's surface receives?",
     correctAnswer: "가시광선 (Visible light)과 적외선 (Infrared wavelengths)",
+    correctAnswerEn: "Visible light and infrared wavelengths",
     explanation: "태양 복사 에너지는 주로 가시광선과 적외선 대역에 집중되어 있습니다.",
+    explanationEn: "The peak emission of solar radiant energy received at the surface is in the visible spectrum and short infrared.",
+    evidenceQuoteEn: "Most of the radiant energy that reaches the earth's surface is in the form of visible light and infrared wavelengths.",
+    evidenceQuoteKo: "지표면에 도달하는 복사 에너지의 대부분은 가시광선과 적외선 파장 형태입니다.",
     page: 445
   },
   {
@@ -345,7 +417,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "태양 상수의 값은 얼마이며, 그것은 어디에서 측정되나요?",
     questionEn: "What is the solar constant? Where is it measured?",
     correctAnswer: "약 1.367 kW/m², 지구 대기 최상단(우주 경계면)에서 측정됨",
+    correctAnswerEn: "Approximately 1.367 kW/m²; it is measured at the top of the earth's atmosphere in space.",
     explanation: "대기 필터링을 거치기 전 대기 최상단에서 수직 입사하는 태양 에너지의 유율입니다.",
+    explanationEn: "The solar constant represents radiant solar energy incident perpendicular to the top of Earth's atmosphere.",
+    evidenceQuoteEn: "The solar constant is about 1.367 kilowatts per square meter (kW/m²), measured at the top of the atmosphere before filtration.",
+    evidenceQuoteKo: "태양 상수는 대기 필터링 이전 대기 최상단에서 측정되며, 약 1.367 kW/m²입니다.",
     page: 445
   },
   {
@@ -355,7 +431,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "태양의 복사 에너지가 대기를 통과하여 지표면에 도달할 때 일어나는 분배 과정을 설명하세요.",
     questionEn: "Make a sketch that shows what happens to the sun's radiant energy as it passes through the earth's atmosphere to the earth's surface.",
     correctAnswer: "구름과 미립자가 최대 32% 우주로 반사, 구름/먼지/수증기가 최대 18% 대기 흡수, 지표면(육지와 물)이 50% 이상 흡수",
+    correctAnswerEn: "Up to 32% is reflected by clouds and airborne particles into space, up to 18% is absorbed by clouds/air, and over 50% is absorbed by land and water at the surface.",
     explanation: "대기 수지: 32% 반사, 18% 대기 흡수, 50%+ 지표 흡수.",
+    explanationEn: "Earth's energy budget: 32% reflection, 18% atmospheric absorption, and over 50% surface absorption.",
+    evidenceQuoteEn: "About 32% of the incoming solar energy is reflected back into space, 18% is absorbed by the atmosphere, and over 50% is absorbed by the earth's surface.",
+    evidenceQuoteKo: "유입되는 태양 에너지의 약 32%는 우주로 반사되고, 18%는 대기에 흡수되며, 50% 이상이 지구 표면에 흡수됩니다.",
     page: 446
   },
   {
@@ -365,7 +445,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "태양이 대기를 데우는 3가지 방식(복사, 전도, 대류)을 비교 설명하세요.",
     questionEn: "Compare the three different ways that the sun warms the atmosphere.",
     correctAnswer: "복사: 지표가 흡수한 열을 적외선으로 재방출 / 전도: 지표면과 공기 분자의 직접 충돌 접촉 가열 / 대류: 데워진 가벼운 공기가 상승하고 찬 공기가 하강하는 순환류",
+    correctAnswerEn: "Radiation: Earth emits infrared rays that heat the air. Conduction: Air heats through direct contact with warm ground. Convection: Warm air expands, becomes less dense, and rises in vertical currents.",
     explanation: "복사는 전자기파, 전도는 직접 접촉 분자 충돌, 대류는 유체의 수직 밀도 순환 이동입니다.",
+    explanationEn: "Radiation uses electromagnetic waves, conduction involves direct molecular contact, and convection is bulk fluid motion.",
+    evidenceQuoteEn: "The atmosphere is warmed in three ways: radiation from the ground, conduction by direct contact with the surface, and convection of rising warm air.",
+    evidenceQuoteKo: "대기는 세 가지 방식으로 데워집니다: 지표면에서의 복사, 지표와의 직접 접촉에 의한 전도, 그리고 상승하는 따뜻한 공기의 대류입니다.",
     page: 447
   },
   {
@@ -375,7 +459,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "온실 효과(The Greenhouse Effect)를 상세히 서술하세요.",
     questionEn: "Describe the greenhouse effect.",
     correctAnswer: "단파장 태양광은 대기를 쉽게 통과하여 지표를 데우고, 지표가 방출하는 장파장 열적외선을 대기 중 온실가스가 포획하여 지구를 따뜻하게 보온하는 현상",
+    correctAnswerEn: "Shortwave solar energy readily penetrates the atmosphere and heats the ground; the ground then reradiates longwave thermal infrared, which is absorbed and trapped by greenhouse gases, keeping the planet warm.",
     explanation: "온실의 유리처럼 단파는 통과시키고 장파 열은 대기 중에 가두어 온도를 유지합니다.",
+    explanationEn: "Like glass in a greenhouse, atmospheric gases allow short solar waves in while trapping escaping thermal infrared rays.",
+    evidenceQuoteEn: "In the greenhouse effect, the atmosphere allows short-wavelength solar energy to pass through, but traps the longer infrared heat emitted by the ground.",
+    evidenceQuoteKo: "온실 효과에서 대기는 단파장 태양 에너지를 통과시키지만, 지표면에서 방출되는 더 긴 파장의 적외선 열을 가둡니다.",
     page: 448
   },
   {
@@ -385,7 +473,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "온실 효과에 가장 크게 기여하는 두 가지 기체는 무엇인가요?",
     questionEn: "Which two gases contribute most to the greenhouse effect?",
     correctAnswer: "수증기 (Water vapor, 1위)와 이산화탄소 (Carbon dioxide, 2위)",
+    correctAnswerEn: "Water vapor (H2O, #1 contributor) and Carbon dioxide (CO2, #2 contributor)",
     explanation: "자연 온실효과 기여도가 가장 큰 기체는 수증기이며 그다음이 이산화탄소입니다.",
+    explanationEn: "Water vapor provides the majority of natural atmospheric heat trapping, followed by carbon dioxide.",
+    evidenceQuoteEn: "Water vapor is the largest contributor to the natural greenhouse effect, followed by carbon dioxide.",
+    evidenceQuoteKo: "수증기는 자연 온실 효과에 가장 크게 기여하는 기체이며, 그 다음이 이산화탄소입니다.",
     page: 448
   },
   {
@@ -395,7 +487,11 @@ export const questions18C: ReviewQuestion[] = [
     question: "(True or False) 다른 조건이 모두 일정할 때, 온실 효과 때문에 흐린 하늘 아래 지표면 온도가 맑은 하늘보다 더 따뜻할 수 있다.",
     questionEn: "(True or False) All other conditions remaining the same, temperatures on the ground under cloudy skies could be warmer than under clear skies because of the greenhouse effect.",
     correctAnswer: true,
+    correctAnswerEn: "True",
     explanation: "True! 구름(수증기)은 지표면에서 복사되는 적외선 열을 강력하게 차단하여 밤에 기온이 떨어지는 것을 막아줍니다.",
+    explanationEn: "True! Cloud cover (water droplets/vapor) blocks infrared radiation from escaping into space overnight, keeping ground temperatures warmer than on clear nights.",
+    evidenceQuoteEn: "Clouds trap infrared heat radiating from the ground, keeping nighttime temperatures under cloudy skies noticeably warmer than under clear skies.",
+    evidenceQuoteKo: "구름은 지표면에서 방사되는 적외선 열을 가두어, 흐린 밤의 기온을 맑은 밤보다 눈에 띄게 따뜻하게 유지해 줍니다.",
     page: 449
   }
 ];

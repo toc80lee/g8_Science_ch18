@@ -12,8 +12,13 @@ export interface ReviewQuestion {
   question: string;
   questionEn: string;
   options?: string[];
+  optionsEn?: string[];
   correctAnswer: string | number | boolean;
+  correctAnswerEn?: string;
   explanation: string;
+  explanationEn?: string;
+  evidenceQuoteEn?: string;
+  evidenceQuoteKo?: string;
   page: number;
 }
 
@@ -51,6 +56,7 @@ export interface TextHighlight {
   text: string;
   color: HighlightColor;
   createdAt: string | number;
+  counterpartId?: string; // Linked highlight in opposite language for bilingual matching
 }
 
 export interface MarginNote {
@@ -91,7 +97,6 @@ export interface ChapterSection {
   id: string;
   category: SectionCategory;
   numberBadge: string;
-  lessonTag?: string;
   titleKo: string;
   titleEn: string;
   breadcrumb: string;

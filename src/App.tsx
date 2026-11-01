@@ -13,11 +13,15 @@ import { GlossaryPageView } from './components/GlossaryPageView';
 import { MyLearningRecordView } from './components/MyLearningRecordView';
 import { DriveSyncModal } from './components/DriveSyncModal';
 import { TrackSelectModal } from './components/TrackSelectModal';
+import { LoginAssistModal } from './components/LoginAssistModal';
 import { 
   initAuth, 
   googleSignIn, 
   googleSignOut, 
-  getAccessToken 
+  getAccessToken,
+  parseAuthError,
+  createGuestUser,
+  AuthErrorInfo
 } from './services/firebaseAuth';
 import { 
   syncDataToGoogleDrive, 
@@ -57,6 +61,8 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
+  const [isLoginAssistOpen, setIsLoginAssistOpen] = useState<boolean>(false);
 
   // Google Drive state
   const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
@@ -152,15 +158,21 @@ export default function App() {
     }
   }, [textHighlights]);
 
-  const handleSaveHighlight = (highlight: TextHighlight) => {
+  const handleSaveHighlight = (highlight: TextHighlight | TextHighlight[]) => {
+    const items = Array.isArray(highlight) ? highlight : [highlight];
     setTextHighlights(prev => {
-      const filtered = prev.filter(h => !(h.sectionId === highlight.sectionId && h.text === highlight.text));
-      return [...filtered, highlight];
+      let updated = [...prev];
+      for (const item of items) {
+        updated = updated.filter(h => !(h.sectionId === item.sectionId && h.text.toLowerCase() === item.text.toLowerCase()));
+        updated.push(item);
+      }
+      return updated;
     });
   };
 
-  const handleDeleteHighlight = (id: string) => {
-    setTextHighlights(prev => prev.filter(h => h.id !== id));
+  const handleDeleteHighlight = (id: string | string[]) => {
+    const idsToDelete = new Set(Array.isArray(id) ? id : [id]);
+    setTextHighlights(prev => prev.filter(h => !idsToDelete.has(h.id)));
   };
 
   const handleClearSectionHighlights = (sectionId: string) => {
@@ -242,6 +254,8 @@ export default function App() {
       const result = await googleSignIn();
       setUser(result.user);
       setToken(result.accessToken);
+      setAuthErrorInfo(null);
+      setIsLoginAssistOpen(false);
       showToast(`${result.user.displayName || '사용자'}님, 환영합니다! Google 계정으로 로그인되었습니다.`);
       
       // Auto check Drive folder
@@ -255,10 +269,22 @@ export default function App() {
       }
     } catch (error: any) {
       console.error('Login failure:', error);
-      showToast('구글 로그인에 실패했습니다. 다시 시도해 주세요.');
+      const parsed = parseAuthError(error);
+      setAuthErrorInfo(parsed);
+      setIsLoginAssistOpen(true);
+      showToast(`${parsed.friendlyTitle}: ${parsed.friendlyDescription}`);
     } finally {
       setIsLoggingIn(false);
     }
+  };
+
+  const handleGuestLogin = () => {
+    const guest = createGuestUser('학습자 (게스트)');
+    setUser(guest.user);
+    setToken(guest.accessToken);
+    setAuthErrorInfo(null);
+    setIsLoginAssistOpen(false);
+    showToast('게스트 모드로 시작되었습니다! 단어장, 형광펜, 퀴즈 오답이 안전하게 보관됩니다.');
   };
 
   const handleGoogleSignOut = async () => {
@@ -465,6 +491,27 @@ export default function App() {
     }
   };
 
+  const handleNavigateToEvidence = (page: number, _quote?: string) => {
+    const targetSec = sections.find((s) => s.pages.includes(page));
+    if (targetSec) {
+      setActiveSectionId(targetSec.id);
+      setCurrentViewMode('study');
+      setTimeout(() => {
+        const el = document.getElementById('textbook-reader-container');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 300, behavior: 'smooth' });
+        }
+      }, 100);
+    } else {
+      const el = document.getElementById('textbook-reader-container');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
   const isCurrentCompleted = completedIds.includes(currentSection.id);
 
   const currentHistoryPayload: LearningHistoryData = {
@@ -637,9 +684,6 @@ export default function App() {
                       {currentSection.numberBadge}
                     </div>
                     <div>
-                      <div className="text-xs text-gray-400 font-medium mb-1">
-                        {currentSection.lessonTag}
-                      </div>
                       {/* English Textbook Title in H1 */}
                       <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
                         {currentSection.titleEn}
@@ -697,10 +741,8 @@ export default function App() {
               {/* [교재 관련 추천 영상 & 과학 탐구 블로그 자료실] */}
               <RelatedMediaSection section={currentSection} />
 
-              {/* [인터랙티브 실습 탐구 카드 (스플릿 뷰)] */}
-              <div className="mt-10">
-                <InteractiveCard section={currentSection} />
-              </div>
+              {/* [탐구 영어 & 과학 인터랙티브 실습 박스] */}
+              <InteractiveCard section={currentSection} />
 
               {/* If the current section is a quiz/review module, render interactive quiz directly! */}
               {currentSection.questions && currentSection.questions.length > 0 && (
@@ -708,6 +750,7 @@ export default function App() {
                   <QuizView
                     questions={currentSection.questions}
                     quizTitle={currentSection.titleKo}
+                    onNavigateToEvidence={handleNavigateToEvidence}
                   />
                 </div>
               )}
@@ -785,6 +828,15 @@ export default function App() {
         onClose={() => setIsTrackSelectOpen(false)}
         currentTrack={currentTrack}
         onSelectTrack={(track) => setCurrentTrack(track)}
+      />
+
+      {/* Login Assist & Guidance Modal (Domain whitelist & Guest fallback) */}
+      <LoginAssistModal
+        isOpen={isLoginAssistOpen}
+        errorInfo={authErrorInfo}
+        onClose={() => setIsLoginAssistOpen(false)}
+        onRetry={handleGoogleSignIn}
+        onStartGuestMode={handleGuestLogin}
       />
 
       {/* Floating Outline Toggle Button for Mobile Portrait Mode */}

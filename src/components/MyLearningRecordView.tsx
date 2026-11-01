@@ -97,10 +97,22 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                     {user.displayName || '학생'}
                   </h2>
-                  <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center space-x-1">
-                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                    <span>Google 로그인 됨</span>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 ${
+                    user.isAnonymous 
+                      ? 'bg-amber-100 text-amber-800' 
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    <ShieldCheck className={`w-3 h-3 ${user.isAnonymous ? 'text-amber-600' : 'text-emerald-600'}`} />
+                    <span>{user.isAnonymous ? '게스트 모드 (기기 로컬 저장)' : 'Google 로그인 됨'}</span>
                   </span>
+                  {user.isAnonymous && (
+                    <button
+                      onClick={onGoogleSignIn}
+                      className="text-[11px] text-blue-600 hover:text-blue-800 font-bold underline"
+                    >
+                      구글 계정 연동
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 font-mono mt-0.5">{user.email}</p>
                 <div className="flex items-center space-x-2 text-[11px] text-gray-400 mt-1">
