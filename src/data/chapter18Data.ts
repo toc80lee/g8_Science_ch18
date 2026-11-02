@@ -191,7 +191,7 @@ const keyTermsCount = 21;
 export const fullReviewQuestionsSection: ChapterSection = {
   id: 'sec-chapter-review-30',
   category: 'review',
-  numberBadge: '30제',
+  numberBadge: 'Q',
   titleKo: 'Chapter 18 단원 종합 복습 문제 (1~30번 전체 수록)',
   titleEn: '18 Review (Questions 1–30)',
   breadcrumb: '18 · 18 Review · 종합 평가 1~30',

@@ -1004,17 +1004,17 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
-                <span>단어 직접 등록</span>
+                <span>단어장</span>
               </button>
 
               {/* Highlight list / reviewer button */}
               <button
                 onClick={() => setIsHighlightListOpen(true)}
                 className="flex items-center space-x-1.5 px-2.5 py-1 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-md transition-colors cursor-pointer"
-                title="본문 형광펜·밑줄 표시 목록 열기"
+                title="본문 형광펜 표시 목록 열기"
               >
                 <Highlighter className="w-3 h-3 text-amber-600" />
-                <span>형광펜·밑줄 ({sectionHighlights.length})</span>
+                <span>형광펜 ({sectionHighlights.length})</span>
               </button>
             </div>
           </div>

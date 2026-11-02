@@ -144,7 +144,7 @@ export const GlossaryPageView: React.FC<GlossaryPageViewProps> = ({
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
-                대기과학 용어 사전 & 스마트 암기 센터
+                핵심 용어
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                 교재 450쪽 공식 21개 필수 용어와 교재 본문에서 내가 직접 스크랩한 단어들을 화면에서 바로 학습합니다.

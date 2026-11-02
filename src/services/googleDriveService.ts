@@ -1,4 +1,4 @@
-import { CustomWord, TextHighlight } from '../types';
+import { CustomWord, TextHighlight, BlogPost } from '../types';
 
 export const APP_DRIVE_FOLDER_NAME = 'Chapter18_지구의대기_학습기록';
 
@@ -25,6 +25,7 @@ export interface DriveSyncPayload {
   history: LearningHistoryData;
   customVocabulary: CustomWord[];
   textHighlights?: TextHighlight[];
+  blogPosts?: Record<string, BlogPost[]>;
 }
 
 /**
@@ -191,7 +192,18 @@ export async function syncDataToGoogleDrive(
     );
   }
 
-  // 4. Save readable report text file
+  // 4. Save study blog posts JSON (if any)
+  if (payload.blogPosts) {
+    await uploadOrUpdateFile(
+      accessToken,
+      folderId,
+      'study_blog_posts.json',
+      JSON.stringify(payload.blogPosts, null, 2),
+      'application/json'
+    );
+  }
+
+  // 5. Save readable report text file
   const reportText = `[지구과학 Chapter 18: 지구의 대기 - 개인 학습 보고서]
 학생 이름 / 계정: ${payload.history.displayName || '학습자'} (${payload.history.userEmail})
 최종 동기화 일시: ${new Date().toLocaleString('ko-KR')}
@@ -243,6 +255,7 @@ export async function loadDataFromGoogleDrive(
   history: LearningHistoryData | null; 
   customVocabulary: CustomWord[] | null; 
   textHighlights: TextHighlight[] | null;
+  blogPosts: Record<string, BlogPost[]> | null;
   folderId: string | null; 
 }> {
   try {
@@ -284,7 +297,19 @@ export async function loadDataFromGoogleDrive(
       }
     }
 
-    return { history, customVocabulary, textHighlights, folderId };
+    // Read study_blog_posts.json
+    let blogPosts: Record<string, BlogPost[]> | null = null;
+    const blogFileId = await findFileInFolder(accessToken, folderId, 'study_blog_posts.json');
+    if (blogFileId) {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${blogFileId}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) {
+        blogPosts = await res.json();
+      }
+    }
+
+    return { history, customVocabulary, textHighlights, blogPosts, folderId };
   } catch (error) {
     console.error('Google Drive 데이터 로드 실패:', error);
     throw error;

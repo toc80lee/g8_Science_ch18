@@ -30,6 +30,7 @@ import {
   LearningHistoryData, 
   DriveFileInfo 
 } from './services/googleDriveService';
+import { loadAllBlogPosts } from './services/studyBlogService';
 import { 
   Check, 
   ChevronRight, 
@@ -326,7 +327,8 @@ export default function App() {
       const result = await syncDataToGoogleDrive(activeToken, {
         history: historyPayload,
         customVocabulary: customWords,
-        textHighlights: textHighlights
+        textHighlights: textHighlights,
+        blogPosts: loadAllBlogPosts()
       });
 
       setDriveFolderId(result.folderId);
@@ -384,12 +386,16 @@ export default function App() {
         localStorage.setItem('ch18_text_highlights', JSON.stringify(data.textHighlights));
       }
 
+      if (data.blogPosts && typeof data.blogPosts === 'object' && Object.keys(data.blogPosts).length > 0) {
+        localStorage.setItem('ch18_study_blog_posts', JSON.stringify(data.blogPosts));
+      }
+
       if (data.folderId) {
         const files = await listFolderFiles(activeToken, data.folderId);
         setDriveFiles(files);
       }
 
-      showToast('Google Drive에서 학습 이력, 단어장 및 형광펜 기록을 성공적으로 불러왔습니다!');
+      showToast('Google Drive에서 학습 이력, 단어장, 형광펜 및 학습 정리를 성공적으로 불러왔습니다!');
     } catch (error) {
       console.error('Load Error:', error);
       showToast('Google Drive에서 데이터를 불러오지 못했습니다.');

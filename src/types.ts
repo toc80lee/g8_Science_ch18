@@ -137,3 +137,31 @@ export interface VoiceJournalEntry {
   feedback: JournalFeedback;
 }
 
+export interface BlogComment {
+  id: string;
+  postId?: string;
+  authorRole: 'parent' | 'friend' | 'teacher' | 'student';
+  authorName: string;
+  avatarEmoji?: string;
+  content: string;
+  createdAt: number;
+  likes?: number;
+}
+
+export interface BlogPost {
+  id: string;
+  sectionId: string;
+  sectionTitleKo: string;
+  sectionTitleEn: string;
+  title: string;
+  authorName: string;
+  createdAt: number;
+  updatedAt?: number;
+  content: string;
+  tags: string[];
+  understandingLevel: 'great' | 'good' | 'review_needed';
+  imageUrl?: string;
+  imageCaption?: string;
+  comments: BlogComment[];
+  likes: number;
+}

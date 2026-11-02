@@ -8,7 +8,8 @@ import {
   FileText, 
   Bookmark, 
   Award,
-  ExternalLink
+  ExternalLink,
+  PenSquare
 } from 'lucide-react';
 import { APP_DRIVE_FOLDER_NAME } from '../services/googleDriveService';
 
@@ -93,6 +94,14 @@ export const DriveSyncModal: React.FC<DriveSyncModalProps> = ({
                 <span>퀴즈 및 복습 평가 점수</span>
               </span>
               <span className="font-bold text-purple-700">{quizScoreCount}개 평가</span>
+            </div>
+
+            <div className="flex items-center justify-between text-gray-700">
+              <span className="flex items-center space-x-1.5">
+                <PenSquare className="w-3.5 h-3.5 text-purple-600" />
+                <span>학습 정리 블로그 포스트 & 댓글</span>
+              </span>
+              <span className="font-bold text-purple-700">포함</span>
             </div>
           </div>
 
