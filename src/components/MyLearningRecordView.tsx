@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { ChapterSection, CustomWord, VoiceJournalEntry } from '../types';
 import { LearningHistoryData, DriveFileInfo, APP_DRIVE_FOLDER_NAME } from '../services/googleDriveService';
@@ -8,28 +8,33 @@ import {
   CloudUpload, 
   CloudDownload, 
   ExternalLink, 
-  CheckCircle2, 
   BookOpen, 
   Bookmark, 
   Clock, 
   ArrowLeft, 
   FolderCheck, 
   FileText, 
-  Calendar,
-  LogOut,
-  ShieldCheck,
-  Sparkles,
-  Mic,
-  Volume2,
-  Play,
-  Pause,
-  Award
+  LogOut, 
+  ShieldCheck, 
+  Sparkles, 
+  Mic, 
+  Play, 
+  Pause, 
+  Download, 
+  Upload, 
+  CheckCircle2, 
+  KeyRound, 
+  HelpCircle,
+  Laptop
 } from 'lucide-react';
 
 interface MyLearningRecordViewProps {
   user: User | null;
   onGoogleSignIn: () => void;
   onGoogleSignOut: () => void;
+  onStartLocalProfile?: (name: string) => void;
+  onExportBackup?: () => void;
+  onImportBackup?: (file: File) => void;
   isLoggingIn: boolean;
   history: LearningHistoryData;
   customWords: CustomWord[];
@@ -47,6 +52,9 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
   user,
   onGoogleSignIn,
   onGoogleSignOut,
+  onStartLocalProfile,
+  onExportBackup,
+  onImportBackup,
   isLoggingIn,
   history,
   customWords,
@@ -63,10 +71,14 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
   const progressPercent = Math.round((completedCount / sections.length) * 100);
 
   // Load recorded voice journals
-  const [voiceJournals] = React.useState<Record<string, VoiceJournalEntry>>(() => loadAllVoiceJournals());
+  const [voiceJournals] = useState<Record<string, VoiceJournalEntry>>(() => loadAllVoiceJournals());
   const journalList = Object.values(voiceJournals).sort((a, b) => b.recordedAt - a.recordedAt);
-  const [playingAudioId, setPlayingAudioId] = React.useState<string | null>(null);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Quick student name input
+  const [inputStudentName, setInputStudentName] = useState('Josh');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleTogglePlayAudio = (id: string, audioUrl?: string) => {
     if (!audioUrl) return;
@@ -86,6 +98,15 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onImportBackup) {
+      onImportBackup(file);
+    }
+    // reset input
+    if (e.target) e.target.value = '';
+  };
+
   return (
     <div className="space-y-6">
       {/* Hidden audio element for journal playback */}
@@ -94,8 +115,18 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
         onEnded={() => setPlayingAudioId(null)}
         className="hidden"
       />
+
+      {/* Hidden file input for JSON import */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".json"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Top Breadcrumb banner */}
-      <div className="bg-blue-50/70 border border-blue-100 rounded px-4 py-2.5 text-xs text-blue-700 font-medium flex items-center justify-between">
+      <div className="bg-blue-50/70 border border-blue-100 rounded-xl px-4 py-2.5 text-xs text-blue-700 font-medium flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <UserIcon className="w-3.5 h-3.5 text-blue-600" />
           <span className="font-semibold">개인 학습 센터</span>
@@ -124,8 +155,8 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
                   className="w-14 h-14 rounded-full border-2 border-blue-600 shadow-xs"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-full bg-blue-600 text-white font-bold text-xl flex items-center justify-center shadow-xs">
-                  {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xl flex items-center justify-center shadow-xs">
+                  {user.displayName?.charAt(0) || user.email?.charAt(0) || '학'}
                 </div>
               )}
               <div>
@@ -133,18 +164,18 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                     {user.displayName || '학생'}
                   </h2>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 ${
+                  <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center space-x-1 ${
                     user.isAnonymous 
-                      ? 'bg-amber-100 text-amber-800' 
-                      : 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                      : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                   }`}>
-                    <ShieldCheck className={`w-3 h-3 ${user.isAnonymous ? 'text-amber-600' : 'text-emerald-600'}`} />
-                    <span>{user.isAnonymous ? '게스트 모드 (기기 로컬 저장)' : 'Google 로그인 됨'}</span>
+                    <ShieldCheck className={`w-3.5 h-3.5 ${user.isAnonymous ? 'text-amber-600' : 'text-emerald-600'}`} />
+                    <span>{user.isAnonymous ? '로컬 학생 프로필 (기기에 자동 저장 중)' : 'Google 계정 로그인 됨'}</span>
                   </span>
                   {user.isAnonymous && (
                     <button
                       onClick={onGoogleSignIn}
-                      className="text-[11px] text-blue-600 hover:text-blue-800 font-bold underline"
+                      className="text-[11px] text-blue-600 hover:text-blue-800 font-bold underline cursor-pointer"
                     >
                       구글 계정 연동
                     </button>
@@ -153,12 +184,12 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
                 <p className="text-xs text-gray-500 font-mono mt-0.5">{user.email}</p>
                 <div className="flex items-center space-x-2 text-[11px] text-gray-400 mt-1">
                   <Clock className="w-3 h-3" />
-                  <span>최근 동기화: {history.lastSyncedAt ? new Date(history.lastSyncedAt).toLocaleString('ko-KR') : '아직 동기화되지 않음'}</span>
+                  <span>최근 동기화: {history.lastSyncedAt ? new Date(history.lastSyncedAt).toLocaleString('ko-KR') : '아직 Drive 동기화 전 (브라우저에 보관됨)'}</span>
                 </div>
               </div>
             </div>
 
-            {/* Actions: Sync & Load & Signout */}
+            {/* Actions: Sync & Load & Backup & Signout */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={onOpenSyncModal}
@@ -177,46 +208,160 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
                 <span>{isLoadingFromDrive ? '불러오는 중...' : 'Drive에서 복원'}</span>
               </button>
 
+              {onExportBackup && (
+                <button
+                  onClick={onExportBackup}
+                  className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold rounded-lg transition-colors cursor-pointer"
+                  title="학습 이력 파일 백업 (.json)"
+                >
+                  <Download className="w-4 h-4 text-slate-600" />
+                  <span>백업 저장</span>
+                </button>
+              )}
+
               <button
                 onClick={onGoogleSignOut}
                 className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                title="로그아웃"
+                title="프로필 종료 및 로그아웃"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>
         ) : (
-          /* When NOT signed in: Sign In Prompt with official Google Button */
-          <div className="text-center py-8 space-y-4 max-w-md mx-auto">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-              <UserIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-gray-900 text-lg">
-                구글 계정으로 로그인하여 학습을 시작하세요
+          /* When NOT signed in: Comprehensive Options for Instant Study & Google Sync */
+          <div className="space-y-6">
+            <div className="text-center max-w-xl mx-auto space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-inner">
+                <UserIcon className="w-6 h-6" />
+              </div>
+              <h3 className="font-extrabold text-gray-900 text-xl">
+                나만의 학습 이력 관리 & 계정 시작
               </h3>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                아이의 학습 진도, 퀴즈 점수, 직접 만든 나만의 용어 사전이
-                개인 Google Drive에 안전하게 저장되어 친구들과 공유하거나 다른 기기에서도 언제든 이어볼 수 있습니다.
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                학생의 <strong>단원 진도, 퀴즈 채점 결과, 나만의 용어 사전, 본문 형광펜, 학습 정리 블로그</strong>가 안전하게 보관됩니다. 원하시는 방식으로 바로 시작하세요!
               </p>
             </div>
 
-            {/* Official Styled Sign in with Google Button per skill guidelines */}
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={onGoogleSignIn}
-                disabled={isLoggingIn}
-                className="flex items-center space-x-3 px-5 py-2.5 bg-white border border-gray-300 hover:border-gray-400 rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer font-medium text-xs sm:text-sm text-gray-700"
-              >
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48">
-                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                </svg>
-                <span>{isLoggingIn ? 'Google 로그인 중...' : 'Sign in with Google (구글로 로그인)'}</span>
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+              {/* Option 1: Quick Student Profile (Guaranteed 100% Works Locally) */}
+              <div className="bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border-2 border-emerald-300 rounded-2xl p-5 flex flex-col justify-between shadow-xs">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                      <Laptop className="w-3.5 h-3.5" />
+                      <span>추천 · 즉시 이용 가능</span>
+                    </span>
+                    <span className="text-[11px] text-emerald-600 font-semibold">로그인 차단 없음</span>
+                  </div>
+                  <h4 className="font-bold text-base text-gray-900">간편 학생 이름으로 바로 시작</h4>
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    구글 로그인 승인 대기나 도메인 설정 없이도, 이름만 입력하면 즉시 개인 학습실이 활성화되며 모든 학습 기록이 이 기기 브라우저에 안전하게 자동 저장됩니다.
+                  </p>
+
+                  <div className="mt-4">
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">
+                      학생 이름 또는 닉네임:
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={inputStudentName}
+                        onChange={(e) => setInputStudentName(e.target.value)}
+                        placeholder="예: Josh, 서진, 민우"
+                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-900 font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && onStartLocalProfile) {
+                            onStartLocalProfile(inputStudentName.trim() || '학습자 (Josh)');
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          if (onStartLocalProfile) {
+                            onStartLocalProfile(inputStudentName.trim() || '학습자 (Josh)');
+                          }
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs"
+                      >
+                        시작하기 →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-emerald-700 mt-4 flex items-center space-x-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>단어장, 형광펜, 오답노트, 블로그 요약 모두 100% 저장됨</span>
+                </div>
+              </div>
+
+              {/* Option 2: Google Account Login for Cloud & Drive Sync */}
+              <div className="bg-gradient-to-br from-blue-50/70 via-white to-indigo-50/30 border border-blue-200 rounded-2xl p-5 flex flex-col justify-between shadow-xs">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="inline-flex items-center space-x-1 text-xs font-bold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full">
+                      <CloudUpload className="w-3.5 h-3.5" />
+                      <span>클라우드 동기화</span>
+                    </span>
+                    <span className="text-[11px] text-blue-600 font-semibold">Google Drive</span>
+                  </div>
+                  <h4 className="font-bold text-base text-gray-900">Google 계정으로 로그인</h4>
+                  <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                    Google 계정으로 로그인하여 내 개인 Google Drive에 백업 폴더를 생성하고 다른 기기(태블릿, 모바일)와 학습 진도를 실시간으로 동기화합니다.
+                  </p>
+
+                  {/* Official Styled Sign in with Google Button */}
+                  <div className="pt-4 flex justify-center">
+                    <button
+                      onClick={onGoogleSignIn}
+                      disabled={isLoggingIn}
+                      className="w-full flex items-center justify-center space-x-3 px-4 py-2.5 bg-white border border-gray-300 hover:border-blue-400 hover:shadow-xs rounded-lg transition-all cursor-pointer font-medium text-xs sm:text-sm text-gray-700"
+                    >
+                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 48 48">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                      </svg>
+                      <span>{isLoggingIn ? 'Google 로그인 연결 중...' : 'Sign in with Google (구글 로그인)'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-gray-500 mt-4 leading-snug">
+                  * Vercel 배포 도메인은 Firebase 승인 도메인 등록 후 원활히 작동합니다.
+                </div>
+              </div>
+            </div>
+
+            {/* Offline JSON Backup & Restore Actions */}
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2 text-xs text-gray-700">
+                <FileText className="w-4 h-4 text-gray-500" />
+                <span className="font-semibold">파일 직접 백업/복원:</span>
+                <span className="text-gray-500">인터넷 연결이나 로그인 없이도 언제든 JSON 파일로 내보내고 불러올 수 있습니다.</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                {onExportBackup && (
+                  <button
+                    onClick={onExportBackup}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-xs font-semibold text-gray-700 rounded-lg shadow-2xs cursor-pointer transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-blue-600" />
+                    <span>백업 파일(.json) 다운로드</span>
+                  </button>
+                )}
+                {onImportBackup && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-gray-300 hover:border-gray-400 text-xs font-semibold text-gray-700 rounded-lg shadow-2xs cursor-pointer transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>백업 파일 불러오기</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -280,7 +425,7 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
         </div>
       )}
 
-      {/* Overview Statistics Cards */}
+      {/* Overview Statistics Cards (Visible anytime so student sees their actual work) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs">
           <div className="text-xs text-gray-500 font-medium mb-1">단원 완료율</div>
@@ -289,7 +434,7 @@ export const MyLearningRecordView: React.FC<MyLearningRecordViewProps> = ({
             <span className="text-xs text-gray-400">({completedCount} / {sections.length})</span>
           </div>
           <div className="w-full bg-gray-100 h-2 rounded-full mt-3 overflow-hidden">
-            <div className="bg-blue-600 h-full rounded-full" style={{ width: `${progressPercent}%` }} />
+            <div className="bg-blue-600 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
 

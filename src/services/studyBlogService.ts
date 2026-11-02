@@ -265,8 +265,13 @@ export const createBlogPost = async (
     likes: 0
   };
 
-  // 1. Save to Firestore if user is authenticated with Google
-  if (user && user.uid) {
+  // 1. Immediately cache in localStorage first so student work is 100% saved and visible
+  const posts = getBlogPostsForSection(section);
+  const updated = [createdPost, ...posts.filter(p => p.id !== generatedId)];
+  saveBlogPostsForSection(section.id, updated);
+
+  // 2. Sync to Firestore if user has a Google authenticated account
+  if (user && user.uid && !user.isAnonymous) {
     try {
       const docRef = doc(db, 'study_summaries', generatedId);
       const firestorePayload = cleanDocData({
@@ -287,15 +292,9 @@ export const createBlogPost = async (
       });
       await setDoc(docRef, firestorePayload);
     } catch (err) {
-      console.error('Failed to save to Firestore directly:', err);
-      throw err;
+      console.warn('Firestore cloud sync notice (saved locally in browser):', err);
     }
   }
-
-  // 2. Cache in localStorage
-  const posts = getBlogPostsForSection(section);
-  const updated = [createdPost, ...posts.filter(p => p.id !== generatedId)];
-  saveBlogPostsForSection(section.id, updated);
 
   return createdPost;
 };
@@ -311,7 +310,14 @@ export const updateBlogPost = async (
 ): Promise<BlogPost[]> => {
   const now = Date.now();
 
-  if (user && user.uid) {
+  // 1. Update localStorage first
+  const allPosts = loadAllBlogPosts();
+  const list = allPosts[sectionId] || [];
+  const updated = list.map(p => (p.id === postId ? { ...p, ...updates, updatedAt: now } : p));
+  saveBlogPostsForSection(sectionId, updated);
+
+  // 2. Sync update to Firestore if signed in
+  if (user && user.uid && !user.isAnonymous) {
     try {
       const docRef = doc(db, 'study_summaries', postId);
       const payload = cleanDocData({
@@ -321,15 +327,10 @@ export const updateBlogPost = async (
       });
       await setDoc(docRef, payload, { merge: true });
     } catch (err) {
-      console.error('Failed to update post in Firestore:', err);
-      throw err;
+      console.warn('Firestore update warning (saved locally):', err);
     }
   }
 
-  const allPosts = loadAllBlogPosts();
-  const list = allPosts[sectionId] || [];
-  const updated = list.map(p => (p.id === postId ? { ...p, ...updates, updatedAt: now } : p));
-  saveBlogPostsForSection(sectionId, updated);
   return updated;
 };
 
@@ -341,20 +342,22 @@ export const deleteBlogPost = async (
   postId: string,
   user: User | null
 ): Promise<BlogPost[]> => {
-  if (user && user.uid) {
-    try {
-      const docRef = doc(db, 'study_summaries', postId);
-      await deleteDoc(docRef);
-    } catch (err) {
-      console.error('Failed to delete post from Firestore:', err);
-      throw err;
-    }
-  }
-
+  // 1. Delete from localStorage first
   const allPosts = loadAllBlogPosts();
   const list = allPosts[sectionId] || [];
   const updated = list.filter(p => p.id !== postId);
   saveBlogPostsForSection(sectionId, updated);
+
+  // 2. Delete from Firestore if signed in
+  if (user && user.uid && !user.isAnonymous) {
+    try {
+      const docRef = doc(db, 'study_summaries', postId);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.warn('Firestore delete warning:', err);
+    }
+  }
+
   return updated;
 };
 

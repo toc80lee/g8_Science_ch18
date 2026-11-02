@@ -21,6 +21,7 @@ import {
   getAccessToken,
   parseAuthError,
   createGuestUser,
+  isAuthCancellation,
   AuthErrorInfo
 } from './services/firebaseAuth';
 import { 
@@ -31,6 +32,7 @@ import {
   DriveFileInfo 
 } from './services/googleDriveService';
 import { loadAllBlogPosts } from './services/studyBlogService';
+import { loadAllVoiceJournals } from './services/voiceJournalService';
 import { 
   Check, 
   ChevronRight, 
@@ -269,23 +271,117 @@ export default function App() {
         console.warn('Initial drive check:', err);
       }
     } catch (error: any) {
+      if (isAuthCancellation(error)) {
+        // User closed the popup or cancelled: no console.error or disruptive modal
+        showToast('구글 로그인이 취소되었습니다.');
+        return;
+      }
       console.error('Login failure:', error);
       const parsed = parseAuthError(error);
       setAuthErrorInfo(parsed);
-      setIsLoginAssistOpen(true);
+      // Only open the setup help modal for actual configuration/authorization issues
+      if (parsed.isUnauthorizedDomain || parsed.isApiKeyInvalid || parsed.isPopupBlocked) {
+        setIsLoginAssistOpen(true);
+      }
       showToast(`${parsed.friendlyTitle}: ${parsed.friendlyDescription}`);
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const handleGuestLogin = () => {
-    const guest = createGuestUser('학습자 (게스트)');
+  const handleStartLocalProfile = (studentName = '학습자 (Josh)') => {
+    const guest = createGuestUser(studentName);
     setUser(guest.user);
     setToken(guest.accessToken);
     setAuthErrorInfo(null);
     setIsLoginAssistOpen(false);
-    showToast('게스트 모드로 시작되었습니다! 단어장, 형광펜, 퀴즈 오답이 안전하게 보관됩니다.');
+    showToast(`${studentName} 학생 모드로 시작되었습니다! 모든 학습 이력이 안전하게 보관됩니다.`);
+  };
+
+  const handleGuestLogin = () => {
+    handleStartLocalProfile('학습자 (Josh)');
+  };
+
+  const handleExportBackup = () => {
+    try {
+      const payload = {
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        studentName: user?.displayName || '학습자 (Josh)',
+        history: {
+          userId: user?.uid || 'guest',
+          userEmail: user?.email || '',
+          displayName: user?.displayName || '학습자',
+          lastSyncedAt: new Date().toISOString(),
+          completedSectionIds: completedIds,
+          visitHistory: visitHistory,
+          quizScores: quizScores
+        },
+        customVocabulary: customWords,
+        textHighlights: textHighlights,
+        blogPosts: loadAllBlogPosts(),
+        voiceJournals: loadAllVoiceJournals()
+      };
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `science_ch18_backup_${(user?.displayName || 'student').replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('학습 이력 백업 파일(.json)이 다운로드되었습니다.');
+    } catch (e) {
+      console.error(e);
+      showToast('백업 파일 생성 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleImportBackup = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const raw = e.target?.result as string;
+        const data = JSON.parse(raw);
+        if (data.history) {
+          if (Array.isArray(data.history.completedSectionIds)) {
+            setCompletedIds(data.history.completedSectionIds);
+          }
+          if (data.history.visitHistory) {
+            setVisitHistory(data.history.visitHistory);
+            localStorage.setItem('ch18_visit_history', JSON.stringify(data.history.visitHistory));
+          }
+          if (data.history.quizScores) {
+            setQuizScores(data.history.quizScores);
+            localStorage.setItem('ch18_quiz_scores', JSON.stringify(data.history.quizScores));
+          }
+        }
+        if (Array.isArray(data.customVocabulary)) {
+          setCustomWords(data.customVocabulary);
+          localStorage.setItem('ch18_custom_vocabulary', JSON.stringify(data.customVocabulary));
+        }
+        if (Array.isArray(data.textHighlights)) {
+          setTextHighlights(data.textHighlights);
+          localStorage.setItem('ch18_text_highlights', JSON.stringify(data.textHighlights));
+        }
+        if (data.blogPosts && typeof data.blogPosts === 'object') {
+          localStorage.setItem('ch18_study_blog_posts', JSON.stringify(data.blogPosts));
+        }
+        if (data.voiceJournals && typeof data.voiceJournals === 'object') {
+          localStorage.setItem('ch18_voice_journals', JSON.stringify(data.voiceJournals));
+        }
+        if (data.studentName) {
+          handleStartLocalProfile(data.studentName);
+        }
+        showToast('백업 파일에서 모든 학습 기록을 성공적으로 복원했습니다!');
+      } catch (err) {
+        console.error('Failed to import backup:', err);
+        showToast('유효하지 않은 백업 파일 형식입니다.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleGoogleSignOut = async () => {
@@ -599,6 +695,9 @@ export default function App() {
               user={user}
               onGoogleSignIn={handleGoogleSignIn}
               onGoogleSignOut={handleGoogleSignOut}
+              onStartLocalProfile={handleStartLocalProfile}
+              onExportBackup={handleExportBackup}
+              onImportBackup={handleImportBackup}
               isLoggingIn={isLoggingIn}
               history={currentHistoryPayload}
               customWords={customWords}

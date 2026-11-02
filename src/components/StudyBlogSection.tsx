@@ -194,19 +194,10 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Save Post to Firebase under Google account ID
+  // Save Post to Firebase or Local Storage under user profile
   const handleSavePost = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMessage(null);
-
-    // Require Google sign-in to save to Firebase under Google UID
-    if (!user) {
-      setErrorMessage('학습 정리를 Firebase에 영구 저장하고 다른 사람들과 공유하려면 Google 계정 로그인이 필요합니다.');
-      if (onGoogleSignIn) {
-        onGoogleSignIn();
-      }
-      return;
-    }
 
     const trimmedContent = content.trim();
     if (!trimmedContent) {
@@ -215,7 +206,8 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     }
 
     const finalTitle = title.trim() || `${section.titleKo} 학습 정리`;
-    const finalAuthor = authorName.trim() || user.displayName || user.email?.split('@')[0] || '학생';
+    const finalAuthor = authorName.trim() || user?.displayName || user?.email?.split('@')[0] || '학생';
+    const effectiveAuthorId = user?.uid || 'student-local-' + Date.now();
 
     setIsSaving(true);
 
@@ -235,7 +227,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
         );
         setPosts(updatedList);
         setJustSavedPostId(editingPostId);
-        setSaveFeedback('수정된 학습 정리가 Firebase에 저장되었습니다!');
+        setSaveFeedback('수정된 학습 정리가 안전하게 저장되었습니다!');
       } else {
         const created = await createBlogPost(
           section,
@@ -244,10 +236,10 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
             sectionTitleKo: section.titleKo,
             sectionTitleEn: section.titleEn,
             title: finalTitle,
-            authorId: user.uid,
+            authorId: effectiveAuthorId,
             authorName: finalAuthor,
-            authorEmail: user.email || '',
-            authorPhotoUrl: user.photoURL || '',
+            authorEmail: user?.email || '',
+            authorPhotoUrl: user?.photoURL || '',
             content: trimmedContent,
             imageUrl: imageUrl.trim() || undefined,
             imageCaption: imageCaption.trim() || undefined,
@@ -257,7 +249,11 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
 
         setPosts((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
         setJustSavedPostId(created.id);
-        setSaveFeedback(`학습 정리가 Firebase에 성공적으로 저장되었습니다! (작성자 ID: ${user.uid.slice(0, 8)}...)`);
+        if (user && !user.isAnonymous) {
+          setSaveFeedback(`학습 정리가 Firebase에 성공적으로 저장 및 공유되었습니다! (작성자: ${finalAuthor})`);
+        } else {
+          setSaveFeedback(`학습 정리가 기기에 안전하게 저장되었습니다! (작성자: ${finalAuthor})`);
+        }
       }
 
       // Clear draft on successful save
