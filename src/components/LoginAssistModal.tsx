@@ -17,17 +17,37 @@ export const LoginAssistModal: React.FC<LoginAssistModalProps> = ({
   onStartGuestMode,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [copiedEnv, setCopiedEnv] = useState(false);
 
   if (!isOpen || !errorInfo) return null;
 
   const currentDomain = errorInfo.domain || (typeof window !== 'undefined' ? window.location.hostname : 'g8-science-ch18.vercel.app');
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://g8-science-ch18.vercel.app';
+  const gcpCredentialsUrl = 'https://console.cloud.google.com/apis/credentials?project=primeval-falcon-387715';
   const firebaseProjectUrl = 'https://console.firebase.google.com/project/primeval-falcon-387715/authentication/settings';
 
-  const handleCopyDomain = () => {
+  const envVariablesText = `VITE_FIREBASE_API_KEY=AIzaSyBzKFCQGh10ccRCQxzVbKFDXvF5K4AaBG0
+VITE_FIREBASE_PROJECT_ID=primeval-falcon-387715
+VITE_FIREBASE_APP_ID=1:195664391315:web:d447e682d849a305387166
+VITE_FIREBASE_AUTH_DOMAIN=primeval-falcon-387715.firebaseapp.com
+VITE_FIREBASE_STORAGE_BUCKET=primeval-falcon-387715.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=195664391315
+VITE_FIREBASE_OAUTH_CLIENT_ID=195664391315-ig2adgql9hc3bsdvcbqqlqk6ai5eps9t.apps.googleusercontent.com
+VITE_FIREBASE_DATABASE_ID=ai-studio-g8sciencechapter-670523c3-e3cf-499c-895a-27f17c6c4608`;
+
+  const handleCopyDomain = (textToCopy: string) => {
     if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(currentDomain);
+      navigator.clipboard.writeText(textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
+  const handleCopyEnv = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(envVariablesText);
+      setCopiedEnv(true);
+      setTimeout(() => setCopiedEnv(false), 2500);
     }
   };
 
@@ -42,14 +62,18 @@ export const LoginAssistModal: React.FC<LoginAssistModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 px-6 py-5 text-white flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center font-bold text-xl shadow-inner">
-              {errorInfo.isUnauthorizedDomain ? '🌐' : '🔐'}
+              {errorInfo.isApiKeyInvalid ? '🔑' : errorInfo.isUnauthorizedDomain ? '🌐' : '🔐'}
             </div>
             <div>
               <h3 className="font-bold text-lg leading-snug">
                 {errorInfo.friendlyTitle}
               </h3>
               <p className="text-xs text-blue-100 mt-0.5">
-                {errorInfo.isUnauthorizedDomain ? '도메인 승인 설정 안내 & 즉시 학습 모드' : '로그인 안내'}
+                {errorInfo.isApiKeyInvalid 
+                  ? 'GCP API 키 웹사이트 허용 설정 안내' 
+                  : errorInfo.isUnauthorizedDomain 
+                    ? '도메인 승인 설정 안내' 
+                    : '로그인 안내'}
               </p>
             </div>
           </div>
@@ -75,6 +99,70 @@ export const LoginAssistModal: React.FC<LoginAssistModalProps> = ({
             </p>
           </div>
 
+          {/* API Key Restriction (HTTP Referrer blocked) */}
+          {errorInfo.isApiKeyInvalid && (
+            <div className="space-y-3">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  허용 목록에 추가해야 할 배포 주소
+                </span>
+                <div className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-slate-300 font-mono text-xs text-slate-800">
+                  <span className="truncate select-all font-bold text-blue-600">{currentOrigin}/*</span>
+                  <button
+                    onClick={() => handleCopyDomain(`${currentOrigin}/*`)}
+                    className="shrink-0 px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
+                  >
+                    {copied ? '✓ 복사됨!' : '주소 복사'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Step-by-Step Guide for GCP */}
+              <div className="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 text-xs sm:text-sm text-indigo-950 space-y-2.5">
+                <h4 className="font-bold text-indigo-900 flex items-center gap-1.5">
+                  <span>🛠️</span>
+                  Google Cloud Console 해결 방법 (1분 소요):
+                </h4>
+                <ol className="list-decimal list-inside space-y-2 text-xs text-indigo-900 leading-relaxed pl-1">
+                  <li>
+                    아래 링크를 눌러 <strong>Google Cloud 콘솔(사용자 인증 정보)</strong>로 이동합니다.
+                  </li>
+                  <li>
+                    <strong>API 키</strong> 목록에서 <code>primeval-falcon-387715</code>에 생성된 Web API 키를 클릭합니다.
+                  </li>
+                  <li>
+                    <strong>[애플리케이션 제한사항]</strong>에서:
+                    <ul className="list-disc list-inside pl-4 mt-1 space-y-1 text-slate-700">
+                      <li>가장 편리한 방법: <strong>'없음'</strong>으로 설정 (Firebase 보안 규칙으로 보호되므로 안전)</li>
+                      <li>또는 <strong>'웹사이트'</strong> 선택 후 웹사이트 제한사항에 <code className="bg-white px-1 py-0.5 rounded border border-indigo-200 text-indigo-900">{currentOrigin}/*</code> 및 <code className="bg-white px-1 py-0.5 rounded border border-indigo-200 text-indigo-900">http://localhost:*</code> 추가</li>
+                    </ul>
+                  </li>
+                  <li>
+                    하단 <strong>[저장]</strong>을 누르면 약 1분 후 정상적으로 구글 로그인이 작동합니다.
+                  </li>
+                </ol>
+
+                <div className="pt-2 flex flex-wrap gap-2">
+                  <a
+                    href={gcpCredentialsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition-colors shadow-xs"
+                  >
+                    <span>GCP 사용자 인증 정보 바로가기</span>
+                    <span>↗</span>
+                  </a>
+                  <button
+                    onClick={handleCopyEnv}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-indigo-200 text-indigo-800 rounded-lg text-xs font-semibold hover:bg-indigo-50 transition-colors"
+                  >
+                    <span>{copiedEnv ? '✓ 환경변수 복사됨!' : 'Vercel 환경변수 전체 복사'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* If Unauthorized Domain (like Vercel domain) */}
           {errorInfo.isUnauthorizedDomain && (
             <div className="space-y-3">
@@ -85,7 +173,7 @@ export const LoginAssistModal: React.FC<LoginAssistModalProps> = ({
                 <div className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-slate-300 font-mono text-sm text-slate-800">
                   <span className="truncate select-all font-bold text-blue-600">{currentDomain}</span>
                   <button
-                    onClick={handleCopyDomain}
+                    onClick={() => handleCopyDomain(currentDomain)}
                     className="shrink-0 px-2.5 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
                   >
                     {copied ? '✓ 복사됨!' : '도메인 복사'}

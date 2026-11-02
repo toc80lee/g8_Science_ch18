@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default-Deny Fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Security Helper Functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation helper for Study Summary posts
+    function isValidSummary(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 300
+        && data.content is string && data.content.size() > 0 && data.content.size() <= 100000
+        && data.sectionId is string && data.sectionId.size() <= 100
+        && data.authorId is string && data.authorId == request.auth.uid
+        && data.authorName is string && data.authorName.size() <= 100
+        && data.createdAt is number;
+    }
+
+    // Validation helper for Comments
+    function isValidComment(data, summaryId) {
+      return data.content is string && data.content.size() > 0 && data.content.size() <= 4000
+        && data.summaryId is string && data.summaryId == summaryId
+        && data.authorId is string && data.authorId == request.auth.uid
+        && data.authorName is string && data.authorName.size() <= 100
+        && data.createdAt is number;
+    }
+
+    // 1. Study Summaries (학습 정리)
+    // Anyone can read summaries so peers, parents, and teachers can review together.
+    // Creating, editing, or deleting requires Google authentication matching authorId.
+    match /study_summaries/{summaryId} {
+      allow get, list: if true;
+
+      allow create: if isSignedIn()
+        && isValidId(summaryId)
+        && isValidSummary(incoming());
+
+      allow update: if isSignedIn()
+        && isValidId(summaryId)
+        && existing().authorId == request.auth.uid
+        && incoming().authorId == request.auth.uid
+        && isValidSummary(incoming());
+
+      allow delete: if isSignedIn()
+        && isValidId(summaryId)
+        && existing().authorId == request.auth.uid;
+
+      // 2. Comments on Study Summaries (학습 정리 댓글)
+      // Anyone can read comments.
+      // Posting a comment strictly requires Google authentication (request.auth.uid == incoming().authorId).
+      match /comments/{commentId} {
+        allow get, list: if true;
+
+        allow create: if isSignedIn()
+          && isValidId(summaryId)
+          && isValidId(commentId)
+          && isValidComment(incoming(), summaryId);
+
+        allow delete: if isSignedIn()
+          && isValidId(summaryId)
+          && isValidId(commentId)
+          && existing().authorId == request.auth.uid;
+      }
+    }
+  }
+}

@@ -140,6 +140,10 @@ export interface VoiceJournalEntry {
 export interface BlogComment {
   id: string;
   postId?: string;
+  summaryId?: string;
+  authorId: string;
+  authorEmail?: string;
+  authorPhotoUrl?: string;
   authorRole: 'parent' | 'friend' | 'teacher' | 'student';
   authorName: string;
   avatarEmoji?: string;
@@ -154,14 +158,18 @@ export interface BlogPost {
   sectionTitleKo: string;
   sectionTitleEn: string;
   title: string;
+  authorId: string;
+  authorEmail?: string;
+  authorPhotoUrl?: string;
   authorName: string;
   createdAt: number;
   updatedAt?: number;
   content: string;
-  tags: string[];
-  understandingLevel: 'great' | 'good' | 'review_needed';
+  tags?: string[];
+  understandingLevel?: 'great' | 'good' | 'review_needed';
   imageUrl?: string;
   imageCaption?: string;
   comments: BlogComment[];
   likes: number;
 }
+

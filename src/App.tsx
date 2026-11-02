@@ -754,8 +754,12 @@ export default function App() {
                     onClearSectionHighlights={handleClearSectionHighlights}
                   />
 
-                  {/* [활동 탭 스트립] - 셀프 학습 · 추천 자료 · 탐구 실습 3개 활동을 1개의 탭스트립으로 통합 */}
-                  <ActivityTabStrip section={currentSection} />
+                  {/* [활동 탭 스트립] - 셀프 학습 · 학습 정리 · 추천 자료 · 탐구 실습 4개 활동 통합 */}
+                  <ActivityTabStrip 
+                    section={currentSection} 
+                    user={user} 
+                    onGoogleSignIn={handleGoogleSignIn} 
+                  />
                 </>
               )}
 

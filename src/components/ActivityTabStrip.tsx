@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mic, Youtube, FlaskConical, ChevronDown, PenSquare } from 'lucide-react';
+import { User } from 'firebase/auth';
 import { ChapterSection } from '../types';
 import { SelfLearningVoiceJournal } from './SelfLearningVoiceJournal';
 import { StudyBlogSection } from './StudyBlogSection';
@@ -8,11 +9,18 @@ import { InteractiveCard } from './InteractiveCard';
 
 interface ActivityTabStripProps {
   section: ChapterSection;
+  user?: User | null;
+  onGoogleSignIn?: () => void;
 }
 
 export type ActivityTabKey = 'journal' | 'blog' | 'media' | 'practice' | null;
 
-export const ActivityTabStrip: React.FC<ActivityTabStripProps> = ({ section }) => {
+export const ActivityTabStrip: React.FC<ActivityTabStripProps> = ({ 
+  section,
+  user = null,
+  onGoogleSignIn
+}) => {
+
   // Active tab state: defaults to null (compact header) or opens selected tab
   const [activeTab, setActiveTab] = useState<ActivityTabKey>(null);
 
@@ -160,7 +168,12 @@ export const ActivityTabStrip: React.FC<ActivityTabStripProps> = ({ section }) =
             <SelfLearningVoiceJournal section={section} embedded={true} />
           )}
           {activeTab === 'blog' && (
-            <StudyBlogSection section={section} embedded={true} />
+            <StudyBlogSection 
+              section={section} 
+              embedded={true} 
+              user={user} 
+              onGoogleSignIn={onGoogleSignIn} 
+            />
           )}
           {activeTab === 'media' && (
             <RelatedMediaSection section={section} embedded={true} />

@@ -69,6 +69,7 @@ export interface AuthErrorInfo {
   friendlyDescription: string;
   solutionSteps?: string[];
   isUnauthorizedDomain: boolean;
+  isApiKeyInvalid: boolean;
   isPopupBlocked: boolean;
   isPopupClosed: boolean;
 }
@@ -79,12 +80,40 @@ export const parseAuthError = (error: any): AuthErrorInfo => {
   const currentDomain = typeof window !== 'undefined' ? window.location.hostname : '';
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
+  // 1. API key invalid / restricted by HTTP referrer
+  if (
+    code.includes('api-key-not-valid') ||
+    originalMessage.includes('api-key-not-valid') ||
+    originalMessage.includes('API_KEY_HTTP_REFERRER_BLOCKED') ||
+    code.includes('invalid-api-key')
+  ) {
+    return {
+      code,
+      originalMessage,
+      domain: currentDomain,
+      isUnauthorizedDomain: false,
+      isApiKeyInvalid: true,
+      isPopupBlocked: false,
+      isPopupClosed: false,
+      friendlyTitle: 'API 키 제한 또는 미허용 도메인 차단',
+      friendlyDescription: `현재 사이트(${currentDomain})에서 전송된 요청이 Google Cloud의 API 키 웹사이트(HTTP Referrer) 제한 또는 미등록으로 인해 차단되었습니다.`,
+      solutionSteps: [
+        'Google Cloud 콘솔(사용자 인증 정보)에 로그인합니다.',
+        '프로젝트 [primeval-falcon-387715]의 해당 Web API 키를 클릭합니다.',
+        '[애플리케이션 제한사항]을 "없음"으로 변경하거나, 웹사이트 허용 목록에 ' + currentOrigin + '/* 를 추가합니다.',
+        'Firebase 콘솔 [Authentication] -> [Settings] -> [승인된 도메인]에 ' + currentDomain + ' 을 추가합니다.'
+      ]
+    };
+  }
+
+  // 2. Unauthorized domain in Firebase Console
   if (code === 'auth/unauthorized-domain' || originalMessage.includes('unauthorized-domain')) {
     return {
       code,
       originalMessage,
       domain: currentDomain,
       isUnauthorizedDomain: true,
+      isApiKeyInvalid: false,
       isPopupBlocked: false,
       isPopupClosed: false,
       friendlyTitle: '도메인 승인 필요 (Authorized Domain)',
@@ -104,6 +133,7 @@ export const parseAuthError = (error: any): AuthErrorInfo => {
       originalMessage,
       domain: currentDomain,
       isUnauthorizedDomain: false,
+      isApiKeyInvalid: false,
       isPopupBlocked: true,
       isPopupClosed: false,
       friendlyTitle: '브라우저 팝업 차단됨',
@@ -117,6 +147,7 @@ export const parseAuthError = (error: any): AuthErrorInfo => {
       originalMessage,
       domain: currentDomain,
       isUnauthorizedDomain: false,
+      isApiKeyInvalid: false,
       isPopupBlocked: false,
       isPopupClosed: true,
       friendlyTitle: '로그인 팝업이 닫힘',
@@ -129,6 +160,7 @@ export const parseAuthError = (error: any): AuthErrorInfo => {
     originalMessage,
     domain: currentDomain,
     isUnauthorizedDomain: false,
+    isApiKeyInvalid: false,
     isPopupBlocked: false,
     isPopupClosed: false,
     friendlyTitle: '구글 로그인 실패',
