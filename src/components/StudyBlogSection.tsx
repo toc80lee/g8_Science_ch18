@@ -34,15 +34,15 @@ import {
 interface StudyBlogSectionProps {
   section: ChapterSection;
   embedded?: boolean;
-  user?: User | null;
-  onGoogleSignIn?: () => void;
+  user?: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null } | null;
+  onOpenAuthModal?: () => void;
 }
 
 export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
   section,
   embedded = false,
   user = null,
-  onGoogleSignIn
+  onOpenAuthModal
 }) => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -152,12 +152,18 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     setShowImageOptions(false);
     setIsEditorVisible(true);
     setErrorMessage(null);
+    setTimeout(() => {
+      const editorEl = document.getElementById('study-blog-editor-card');
+      if (editorEl) {
+        editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   // Open editor to edit an existing post
   const handleStartEdit = (post: BlogPost) => {
     if (!user) {
-      if (onGoogleSignIn) onGoogleSignIn();
+      if (onOpenAuthModal) onOpenAuthModal();
       return;
     }
     if (post.authorId && post.authorId !== user.uid) {
@@ -176,7 +182,12 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     setErrorMessage(null);
 
     // Scroll to editor smoothly
-    window.scrollTo({ top: 350, behavior: 'smooth' });
+    setTimeout(() => {
+      const editorEl = document.getElementById('study-blog-editor-card');
+      if (editorEl) {
+        editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   // Handle image upload
@@ -249,7 +260,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
 
         setPosts((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
         setJustSavedPostId(created.id);
-        if (user && !user.isAnonymous) {
+        if (user) {
           setSaveFeedback(`학습 정리가 Firebase에 성공적으로 저장 및 공유되었습니다! (작성자: ${finalAuthor})`);
         } else {
           setSaveFeedback(`학습 정리가 기기에 안전하게 저장되었습니다! (작성자: ${finalAuthor})`);
@@ -290,7 +301,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
   // Delete post (only author)
   const handleDeletePost = async (post: BlogPost) => {
     if (!user) {
-      if (onGoogleSignIn) onGoogleSignIn();
+      if (onOpenAuthModal) onOpenAuthModal();
       return;
     }
     if (post.authorId && post.authorId !== user.uid) {
@@ -331,13 +342,13 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     }));
   };
 
-  // Add Comment strictly using Google signed-in account
+  // Add Comment strictly using signed-in member account
   const handleAddComment = async (postId: string) => {
     if (!user) {
-      if (onGoogleSignIn) {
-        onGoogleSignIn();
+      if (onOpenAuthModal) {
+        onOpenAuthModal();
       } else {
-        alert('댓글을 작성하려면 먼저 Google 계정으로 로그인해 주세요.');
+        alert('댓글을 작성하려면 먼저 회원 로그인을 해 주세요.');
       }
       return;
     }
@@ -391,7 +402,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
   // Delete Comment (only author)
   const handleDeleteComment = async (postId: string, comment: BlogComment) => {
     if (!user) {
-      if (onGoogleSignIn) onGoogleSignIn();
+      if (onOpenAuthModal) onOpenAuthModal();
       return;
     }
     if (comment.authorId !== user.uid) {
@@ -452,18 +463,18 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
                   {user.displayName || user.email?.split('@')[0]}
                 </span>
                 <span className="text-[10px] text-gray-400 font-mono block">
-                  {user.email || 'Google 계정 연결됨'}
+                  {user.email || '회원 계정 연결됨'}
                 </span>
               </div>
             </div>
           ) : (
             <button
               type="button"
-              onClick={onGoogleSignIn}
+              onClick={onOpenAuthModal}
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-purple-300 text-purple-700 rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
             >
               <LogIn className="w-3.5 h-3.5 text-purple-600" />
-              <span>Google 로그인</span>
+              <span>회원 로그인</span>
             </button>
           )}
         </div>
@@ -513,15 +524,15 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
               <div className="flex items-start space-x-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Google 계정 로그인이 필요합니다.</span>
+                  <span className="font-bold">회원 로그인이 필요합니다.</span>
                   <p className="text-amber-700 mt-0.5">
-                    학습 정리를 내 계정 ID로 Firebase에 저장하고 다른 사람들과 공유하려면 Google 로그인이 필요합니다.
+                    학습 정리를 내 계정 ID로 Firebase에 저장하고 다른 사람들과 공유하려면 회원가입 및 로그인이 필요합니다.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={onGoogleSignIn}
+                onClick={onOpenAuthModal}
                 className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shrink-0 cursor-pointer"
               >
                 로그인하기
@@ -1006,11 +1017,11 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
                   ) : (
                     <div className="bg-gray-100/70 border border-gray-200 rounded-lg p-2.5 flex items-center justify-between text-xs">
                       <span className="text-gray-600">
-                        댓글은 Google 계정으로 로그인한 사람만 작성할 수 있습니다.
+                        댓글은 회원으로 로그인한 사람만 작성할 수 있습니다.
                       </span>
                       <button
                         type="button"
-                        onClick={onGoogleSignIn}
+                        onClick={onOpenAuthModal}
                         className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded text-xs shrink-0 cursor-pointer flex items-center space-x-1"
                       >
                         <LogIn className="w-3 h-3" />

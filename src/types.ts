@@ -173,3 +173,26 @@ export interface BlogPost {
   likes: number;
 }
 
+export interface MemberProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: 'student' | 'parent' | 'teacher';
+  schoolGrade?: string;
+  createdAt: number;
+  lastLoginAt?: number;
+}
+
+export interface MemberLearningRecord {
+  userId: string;
+  userEmail: string;
+  displayName: string;
+  completedSectionIds: string[];
+  visitHistory: Record<string, { title: string; lastVisitedAt: number; count: number }>;
+  quizScores: Record<string, { correct: number; total: number; scorePercent: number; updatedAt: number }>;
+  customVocabulary: CustomWord[];
+  textHighlights: TextHighlight[];
+  lastSyncedAt: string;
+  updatedAt: number;
+}
+

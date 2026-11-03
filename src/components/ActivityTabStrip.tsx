@@ -9,8 +9,8 @@ import { InteractiveCard } from './InteractiveCard';
 
 interface ActivityTabStripProps {
   section: ChapterSection;
-  user?: User | null;
-  onGoogleSignIn?: () => void;
+  user?: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null } | null;
+  onOpenAuthModal?: () => void;
 }
 
 export type ActivityTabKey = 'journal' | 'blog' | 'media' | 'practice' | null;
@@ -18,7 +18,7 @@ export type ActivityTabKey = 'journal' | 'blog' | 'media' | 'practice' | null;
 export const ActivityTabStrip: React.FC<ActivityTabStripProps> = ({ 
   section,
   user = null,
-  onGoogleSignIn
+  onOpenAuthModal
 }) => {
 
   // Active tab state: defaults to null (compact header) or opens selected tab
@@ -172,7 +172,7 @@ export const ActivityTabStrip: React.FC<ActivityTabStripProps> = ({
               section={section} 
               embedded={true} 
               user={user} 
-              onGoogleSignIn={onGoogleSignIn} 
+              onOpenAuthModal={onOpenAuthModal} 
             />
           )}
           {activeTab === 'media' && (

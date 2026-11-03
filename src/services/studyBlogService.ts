@@ -218,9 +218,20 @@ export const subscribeToSectionBlogPosts = (
         });
 
         const firestorePosts = await Promise.all(postPromises);
-        firestorePosts.sort((a, b) => b.createdAt - a.createdAt);
-        saveBlogPostsForSection(sectionId, firestorePosts);
-        onUpdate(firestorePosts);
+        const localPosts = getBlogPostsForSection({ id: sectionId } as ChapterSection);
+        const map = new Map<string, BlogPost>();
+
+        for (const p of firestorePosts) {
+          map.set(p.id, p);
+        }
+        for (const p of localPosts) {
+          if (!map.has(p.id)) {
+            map.set(p.id, p);
+          }
+        }
+        const combined = Array.from(map.values()).sort((a, b) => b.createdAt - a.createdAt);
+        saveBlogPostsForSection(sectionId, combined);
+        onUpdate(combined);
       },
       (err) => {
         console.warn('Realtime subscription error:', err);
@@ -240,7 +251,7 @@ export const subscribeToSectionBlogPosts = (
 export const createBlogPost = async (
   section: ChapterSection,
   newPost: Omit<BlogPost, 'id' | 'createdAt' | 'comments' | 'likes'>,
-  user: User | null
+  user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null } | null
 ): Promise<BlogPost> => {
   const generatedId = `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const now = Date.now();
@@ -270,30 +281,28 @@ export const createBlogPost = async (
   const updated = [createdPost, ...posts.filter(p => p.id !== generatedId)];
   saveBlogPostsForSection(section.id, updated);
 
-  // 2. Sync to Firestore if user has a Google authenticated account
-  if (user && user.uid && !user.isAnonymous) {
-    try {
-      const docRef = doc(db, 'study_summaries', generatedId);
-      const firestorePayload = cleanDocData({
-        id: generatedId,
-        sectionId: section.id,
-        sectionTitleKo: section.titleKo,
-        sectionTitleEn: section.titleEn,
-        title: createdPost.title,
-        content: createdPost.content,
-        authorId: user.uid,
-        authorName: authorName,
-        authorEmail: authorEmail,
-        authorPhotoUrl: authorPhotoUrl,
-        imageUrl: createdPost.imageUrl || '',
-        imageCaption: createdPost.imageCaption || '',
-        createdAt: now,
-        likes: 0
-      });
-      await setDoc(docRef, firestorePayload);
-    } catch (err) {
-      console.warn('Firestore cloud sync notice (saved locally in browser):', err);
-    }
+  // 2. Sync to Firestore
+  try {
+    const docRef = doc(db, 'study_summaries', generatedId);
+    const firestorePayload = cleanDocData({
+      id: generatedId,
+      sectionId: section.id,
+      sectionTitleKo: section.titleKo,
+      sectionTitleEn: section.titleEn,
+      title: createdPost.title,
+      content: createdPost.content,
+      authorId: authorId,
+      authorName: authorName,
+      authorEmail: authorEmail,
+      authorPhotoUrl: authorPhotoUrl,
+      imageUrl: createdPost.imageUrl || '',
+      imageCaption: createdPost.imageCaption || '',
+      createdAt: now,
+      likes: 0
+    });
+    await setDoc(docRef, firestorePayload);
+  } catch (err) {
+    console.warn('Firestore cloud sync notice (saved locally in browser):', err);
   }
 
   return createdPost;
@@ -306,7 +315,7 @@ export const updateBlogPost = async (
   sectionId: string,
   postId: string,
   updates: Partial<BlogPost>,
-  user: User | null
+  user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null } | null
 ): Promise<BlogPost[]> => {
   const now = Date.now();
 
@@ -316,19 +325,17 @@ export const updateBlogPost = async (
   const updated = list.map(p => (p.id === postId ? { ...p, ...updates, updatedAt: now } : p));
   saveBlogPostsForSection(sectionId, updated);
 
-  // 2. Sync update to Firestore if signed in
-  if (user && user.uid && !user.isAnonymous) {
-    try {
-      const docRef = doc(db, 'study_summaries', postId);
-      const payload = cleanDocData({
-        ...updates,
-        authorId: user.uid,
-        updatedAt: now
-      });
-      await setDoc(docRef, payload, { merge: true });
-    } catch (err) {
-      console.warn('Firestore update warning (saved locally):', err);
-    }
+  // 2. Sync update to Firestore
+  try {
+    const docRef = doc(db, 'study_summaries', postId);
+    const payload = cleanDocData({
+      ...updates,
+      authorId: user?.uid || updates.authorId,
+      updatedAt: now
+    });
+    await setDoc(docRef, payload, { merge: true });
+  } catch (err) {
+    console.warn('Firestore update warning (saved locally):', err);
   }
 
   return updated;
@@ -340,7 +347,7 @@ export const updateBlogPost = async (
 export const deleteBlogPost = async (
   sectionId: string,
   postId: string,
-  user: User | null
+  _user: User | { uid: string } | null
 ): Promise<BlogPost[]> => {
   // 1. Delete from localStorage first
   const allPosts = loadAllBlogPosts();
@@ -348,14 +355,12 @@ export const deleteBlogPost = async (
   const updated = list.filter(p => p.id !== postId);
   saveBlogPostsForSection(sectionId, updated);
 
-  // 2. Delete from Firestore if signed in
-  if (user && user.uid && !user.isAnonymous) {
-    try {
-      const docRef = doc(db, 'study_summaries', postId);
-      await deleteDoc(docRef);
-    } catch (err) {
-      console.warn('Firestore delete warning:', err);
-    }
+  // 2. Delete from Firestore
+  try {
+    const docRef = doc(db, 'study_summaries', postId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn('Firestore delete warning:', err);
   }
 
   return updated;
@@ -363,17 +368,17 @@ export const deleteBlogPost = async (
 
 /**
  * Add a comment to a study summary
- * Strictly saves to Firestore under the Google-signed-in user's account
+ * Strictly saves to Firestore under the signed-in member's account
  */
 export const addBlogComment = async (
   sectionId: string,
   summaryId: string,
   content: string,
   authorRole: 'parent' | 'friend' | 'teacher' | 'student',
-  user: User
+  user: { uid: string; displayName?: string | null; email?: string | null; photoURL?: string | null }
 ): Promise<BlogComment> => {
   if (!user || !user.uid) {
-    throw new Error('댓글을 작성하려면 Google 계정 로그인이 필요합니다.');
+    throw new Error('댓글을 작성하려면 회원 로그인이 필요합니다.');
   }
 
   const commentId = `cmt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -436,7 +441,7 @@ export const deleteBlogComment = async (
   sectionId: string,
   summaryId: string,
   commentId: string,
-  user: User | null
+  user: { uid: string } | null
 ) => {
   if (user && user.uid) {
     try {

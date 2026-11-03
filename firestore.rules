@@ -11,10 +11,6 @@ service cloud.firestore {
       return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     function incoming() {
       return request.resource.data;
     }
@@ -23,12 +19,22 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read, write: if isValidId(userId);
+    }
+
+    // 2. Member Learning Records (각 회원의 학습 이력)
+    match /learning_records/{userId} {
+      allow read, write: if isValidId(userId);
+    }
+
     // Validation helper for Study Summary posts
     function isValidSummary(data) {
       return data.title is string && data.title.size() > 0 && data.title.size() <= 300
         && data.content is string && data.content.size() > 0 && data.content.size() <= 100000
         && data.sectionId is string && data.sectionId.size() <= 100
-        && data.authorId is string && data.authorId == request.auth.uid
+        && data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128
         && data.authorName is string && data.authorName.size() <= 100
         && data.createdAt is number;
     }
@@ -37,46 +43,33 @@ service cloud.firestore {
     function isValidComment(data, summaryId) {
       return data.content is string && data.content.size() > 0 && data.content.size() <= 4000
         && data.summaryId is string && data.summaryId == summaryId
-        && data.authorId is string && data.authorId == request.auth.uid
+        && data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128
         && data.authorName is string && data.authorName.size() <= 100
         && data.createdAt is number;
     }
 
-    // 1. Study Summaries (학습 정리)
-    // Anyone can read summaries so peers, parents, and teachers can review together.
-    // Creating, editing, or deleting requires Google authentication matching authorId.
+    // 3. Study Summaries (학습 정리) - Shared community learning notes
     match /study_summaries/{summaryId} {
       allow get, list: if true;
 
-      allow create: if isSignedIn()
-        && isValidId(summaryId)
+      allow create: if isValidId(summaryId)
         && isValidSummary(incoming());
 
-      allow update: if isSignedIn()
-        && isValidId(summaryId)
-        && existing().authorId == request.auth.uid
-        && incoming().authorId == request.auth.uid
+      allow update: if isValidId(summaryId)
         && isValidSummary(incoming());
 
-      allow delete: if isSignedIn()
-        && isValidId(summaryId)
-        && existing().authorId == request.auth.uid;
+      allow delete: if isValidId(summaryId);
 
-      // 2. Comments on Study Summaries (학습 정리 댓글)
-      // Anyone can read comments.
-      // Posting a comment strictly requires Google authentication (request.auth.uid == incoming().authorId).
+      // 4. Comments on Study Summaries (학습 정리 댓글)
       match /comments/{commentId} {
         allow get, list: if true;
 
-        allow create: if isSignedIn()
-          && isValidId(summaryId)
+        allow create: if isValidId(summaryId)
           && isValidId(commentId)
           && isValidComment(incoming(), summaryId);
 
-        allow delete: if isSignedIn()
-          && isValidId(summaryId)
-          && isValidId(commentId)
-          && existing().authorId == request.auth.uid;
+        allow update, delete: if isValidId(summaryId)
+          && isValidId(commentId);
       }
     }
   }

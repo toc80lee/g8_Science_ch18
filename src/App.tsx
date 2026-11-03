@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { User } from 'firebase/auth';
+import React, { useState, useEffect, useRef } from 'react';
 import { allChapterSections } from './data/chapter18Data';
 import { keyTermsList, chapterSummaryPoints } from './data/reviewAndGlossary';
 import { ChapterSection, CustomWord, TextHighlight } from './types';
@@ -11,37 +10,25 @@ import { ChapterSummaryTermsSection } from './components/ChapterSummaryTermsSect
 import { QuizView } from './components/QuizView';
 import { GlossaryPageView } from './components/GlossaryPageView';
 import { MyLearningRecordView } from './components/MyLearningRecordView';
-import { DriveSyncModal } from './components/DriveSyncModal';
 import { TrackSelectModal } from './components/TrackSelectModal';
-import { LoginAssistModal } from './components/LoginAssistModal';
+import { AuthModal } from './components/AuthModal';
 import { 
-  initAuth, 
-  googleSignIn, 
-  googleSignOut, 
-  getAccessToken,
-  parseAuthError,
-  createGuestUser,
-  isAuthCancellation,
-  AuthErrorInfo
+  initMemberAuth, 
+  signOutMember, 
+  MemberSessionData 
 } from './services/firebaseAuth';
 import { 
-  syncDataToGoogleDrive, 
-  loadDataFromGoogleDrive, 
-  listFolderFiles, 
-  LearningHistoryData, 
-  DriveFileInfo 
-} from './services/googleDriveService';
+  saveMemberLearningRecord, 
+  loadMemberLearningRecord 
+} from './services/memberLearningService';
+import { LearningHistoryData } from './services/googleDriveService';
 import { loadAllBlogPosts } from './services/studyBlogService';
 import { loadAllVoiceJournals } from './services/voiceJournalService';
 import { 
   Check, 
   ChevronRight, 
   ChevronLeft, 
-  Bookmark,
-  BookOpen,
-  Sparkles,
-  CloudCheck,
-  AlertCircle,
+  Bookmark, 
   Menu
 } from 'lucide-react';
 
@@ -60,19 +47,10 @@ export default function App() {
   const [currentViewMode, setCurrentViewMode] = useState<'study' | 'glossary' | 'my-record'>('study');
   const [glossaryTab, setGlossaryTab] = useState<'key-terms' | 'custom-words' | 'flashcards'>('key-terms');
 
-  // Firebase Auth state
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
-  const [authErrorInfo, setAuthErrorInfo] = useState<AuthErrorInfo | null>(null);
-  const [isLoginAssistOpen, setIsLoginAssistOpen] = useState<boolean>(false);
-
-  // Google Drive state
-  const [driveFolderId, setDriveFolderId] = useState<string | null>(null);
-  const [driveFiles, setDriveFiles] = useState<DriveFileInfo[]>([]);
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [isLoadingFromDrive, setIsLoadingFromDrive] = useState<boolean>(false);
+  // Member Auth state
+  const [user, setUser] = useState<MemberSessionData | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isSyncingToFirebase, setIsSyncingToFirebase] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Completed sections
@@ -142,7 +120,7 @@ export default function App() {
     }
   });
 
-  // Text Highlights & Underlines (본문 형광펜 & 밑줄)
+  // Text Highlights & Underlines
   const [textHighlights, setTextHighlights] = useState<TextHighlight[]>(() => {
     try {
       const saved = localStorage.getItem('ch18_text_highlights');
@@ -152,57 +130,74 @@ export default function App() {
     }
   });
 
-  // Sync text highlights to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('ch18_text_highlights', JSON.stringify(textHighlights));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [textHighlights]);
-
-  const handleSaveHighlight = (highlight: TextHighlight | TextHighlight[]) => {
-    const items = Array.isArray(highlight) ? highlight : [highlight];
-    setTextHighlights(prev => {
-      let updated = [...prev];
-      for (const item of items) {
-        updated = updated.filter(h => !(h.sectionId === item.sectionId && h.text.toLowerCase() === item.text.toLowerCase()));
-        updated.push(item);
-      }
-      return updated;
-    });
-  };
-
-  const handleDeleteHighlight = (id: string | string[]) => {
-    const idsToDelete = new Set(Array.isArray(id) ? id : [id]);
-    setTextHighlights(prev => prev.filter(h => !idsToDelete.has(h.id)));
-  };
-
-  const handleClearSectionHighlights = (sectionId: string) => {
-    setTextHighlights(prev => prev.filter(h => h.sectionId !== sectionId));
-  };
-
   // Track Selector modal state
   const [isTrackSelectOpen, setIsTrackSelectOpen] = useState<boolean>(false);
   const [currentTrack, setCurrentTrack] = useState<string>('full');
+
+  // Debounce ref for auto-saving to Firebase
+  const autoSaveTimeoutRef = useRef<any>(null);
 
   // Active section
   const currentSection = sections.find((s) => s.id === activeSectionId) || sections[0];
   const currentIndex = sections.findIndex((s) => s.id === activeSectionId);
 
-  // Initialize Firebase Auth on app mount
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Function to load member learning record from Firebase and merge into state
+  const syncMemberDataFromCloud = async (userId: string) => {
+    try {
+      const record = await loadMemberLearningRecord(userId);
+      if (record) {
+        if (Array.isArray(record.completedSectionIds) && record.completedSectionIds.length > 0) {
+          setCompletedIds(record.completedSectionIds);
+          localStorage.setItem('ch18_completed_sections', JSON.stringify(record.completedSectionIds));
+        }
+        if (record.visitHistory && Object.keys(record.visitHistory).length > 0) {
+          setVisitHistory(record.visitHistory);
+          localStorage.setItem('ch18_visit_history', JSON.stringify(record.visitHistory));
+        }
+        if (record.quizScores && Object.keys(record.quizScores).length > 0) {
+          setQuizScores(record.quizScores);
+          localStorage.setItem('ch18_quiz_scores', JSON.stringify(record.quizScores));
+        }
+        if (Array.isArray(record.customVocabulary) && record.customVocabulary.length > 0) {
+          setCustomWords(record.customVocabulary);
+          localStorage.setItem('ch18_custom_vocabulary', JSON.stringify(record.customVocabulary));
+        }
+        if (Array.isArray(record.textHighlights) && record.textHighlights.length > 0) {
+          setTextHighlights(record.textHighlights);
+          localStorage.setItem('ch18_text_highlights', JSON.stringify(record.textHighlights));
+        }
+        if (record.lastSyncedAt) {
+          setLastSyncedAt(record.lastSyncedAt);
+          localStorage.setItem('ch18_last_synced_at', record.lastSyncedAt);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to sync member data from cloud:', e);
+    }
+  };
+
+  // Initialize Member Auth on mount
   useEffect(() => {
-    const unsubscribe = initAuth(
-      (currentUser, currentToken) => {
-        setUser(currentUser);
-        setToken(currentToken);
+    const unsubscribe = initMemberAuth(
+      (currentMember) => {
+        const session = currentMember as MemberSessionData;
+        setUser(session);
+        if (session.uid) {
+          syncMemberDataFromCloud(session.uid);
+        }
       },
       () => {
         setUser(null);
-        setToken(null);
       }
     );
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Track visit when activeSectionId changes
@@ -228,90 +223,158 @@ export default function App() {
     }
   }, [activeSectionId, currentViewMode]);
 
-  // Sync completion to localStorage
+  // Sync completion to localStorage & auto-save to Firebase
   useEffect(() => {
     try {
       localStorage.setItem('ch18_completed_sections', JSON.stringify(completedIds));
     } catch (e) {
       console.error(e);
     }
+
+    if (user?.uid) {
+      triggerCloudAutoSave();
+    }
   }, [completedIds]);
 
-  // Sync custom words to localStorage
+  // Sync custom words to localStorage & auto-save to Firebase
   useEffect(() => {
     try {
       localStorage.setItem('ch18_custom_vocabulary', JSON.stringify(customWords));
     } catch (e) {
       console.error(e);
     }
+
+    if (user?.uid) {
+      triggerCloudAutoSave();
+    }
   }, [customWords]);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoggingIn(true);
+  // Sync text highlights to localStorage & auto-save to Firebase
+  useEffect(() => {
     try {
-      const result = await googleSignIn();
-      setUser(result.user);
-      setToken(result.accessToken);
-      setAuthErrorInfo(null);
-      setIsLoginAssistOpen(false);
-      showToast(`${result.user.displayName || '사용자'}님, 환영합니다! Google 계정으로 로그인되었습니다.`);
-      
-      // Auto check Drive folder
+      localStorage.setItem('ch18_text_highlights', JSON.stringify(textHighlights));
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (user?.uid) {
+      triggerCloudAutoSave();
+    }
+  }, [textHighlights]);
+
+  // Sync quiz scores to localStorage & auto-save to Firebase
+  useEffect(() => {
+    try {
+      localStorage.setItem('ch18_quiz_scores', JSON.stringify(quizScores));
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (user?.uid) {
+      triggerCloudAutoSave();
+    }
+  }, [quizScores]);
+
+  // Auto-save debounced helper
+  const triggerCloudAutoSave = () => {
+    if (!user?.uid) return;
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = setTimeout(async () => {
       try {
-        const driveData = await loadDataFromGoogleDrive(result.accessToken);
-        if (driveData.folderId) {
-          setDriveFolderId(driveData.folderId);
+        const result = await saveMemberLearningRecord(user.uid, {
+          userEmail: user.email,
+          displayName: user.displayName,
+          completedSectionIds: completedIds,
+          visitHistory,
+          quizScores,
+          customVocabulary: customWords,
+          textHighlights,
+        });
+        if (result.lastSyncedAt) {
+          setLastSyncedAt(result.lastSyncedAt);
+          localStorage.setItem('ch18_last_synced_at', result.lastSyncedAt);
         }
       } catch (err) {
-        console.warn('Initial drive check:', err);
+        console.warn('Auto save notice:', err);
       }
-    } catch (error: any) {
-      if (isAuthCancellation(error)) {
-        // User closed the popup or cancelled: no console.error or disruptive modal
-        showToast('구글 로그인이 취소되었습니다.');
-        return;
+    }, 1200);
+  };
+
+  // Manual save to Firebase
+  const handleManualSyncToFirebase = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsSyncingToFirebase(true);
+    try {
+      const result = await saveMemberLearningRecord(user.uid, {
+        userEmail: user.email,
+        displayName: user.displayName,
+        completedSectionIds: completedIds,
+        visitHistory,
+        quizScores,
+        customVocabulary: customWords,
+        textHighlights,
+      });
+      if (result.lastSyncedAt) {
+        setLastSyncedAt(result.lastSyncedAt);
+        localStorage.setItem('ch18_last_synced_at', result.lastSyncedAt);
       }
-      console.error('Login failure:', error);
-      const parsed = parseAuthError(error);
-      setAuthErrorInfo(parsed);
-      // Only open the setup help modal for actual configuration/authorization issues
-      if (parsed.isUnauthorizedDomain || parsed.isApiKeyInvalid || parsed.isPopupBlocked) {
-        setIsLoginAssistOpen(true);
-      }
-      showToast(`${parsed.friendlyTitle}: ${parsed.friendlyDescription}`);
+      showToast('Firebase 클라우드에 학습 이력이 안전하게 저장되었습니다!');
+    } catch (error) {
+      console.error('Manual sync error:', error);
+      showToast('저장 중 문제가 발생했습니다. 브라우저 로컬 저장소에 안전하게 보관 중입니다.');
     } finally {
-      setIsLoggingIn(false);
+      setIsSyncingToFirebase(false);
     }
   };
 
-  const handleStartLocalProfile = (studentName = '학습자 (Josh)') => {
-    const guest = createGuestUser(studentName);
-    setUser(guest.user);
-    setToken(guest.accessToken);
-    setAuthErrorInfo(null);
-    setIsLoginAssistOpen(false);
-    showToast(`${studentName} 학생 모드로 시작되었습니다! 모든 학습 이력이 안전하게 보관됩니다.`);
+  const handleAuthSuccess = (session: MemberSessionData) => {
+    setUser(session);
+    syncMemberDataFromCloud(session.uid);
+    showToast(`${session.displayName}님, 환영합니다! Firebase 회원 학습 이력이 연동되었습니다.`);
   };
 
-  const handleGuestLogin = () => {
-    handleStartLocalProfile('학습자 (Josh)');
+  const handleSignOut = async () => {
+    await signOutMember();
+    setUser(null);
+    showToast('로그아웃되었습니다.');
+  };
+
+  const handleSaveHighlight = (highlight: TextHighlight | TextHighlight[]) => {
+    const items = Array.isArray(highlight) ? highlight : [highlight];
+    setTextHighlights(prev => {
+      let updated = [...prev];
+      for (const item of items) {
+        updated = updated.filter(h => !(h.sectionId === item.sectionId && h.text.toLowerCase() === item.text.toLowerCase()));
+        updated.push(item);
+      }
+      return updated;
+    });
+  };
+
+  const handleDeleteHighlight = (id: string | string[]) => {
+    const idsToDelete = new Set(Array.isArray(id) ? id : [id]);
+    setTextHighlights(prev => prev.filter(h => !idsToDelete.has(h.id)));
+  };
+
+  const handleClearSectionHighlights = (sectionId: string) => {
+    setTextHighlights(prev => prev.filter(h => h.sectionId !== sectionId));
   };
 
   const handleExportBackup = () => {
     try {
       const payload = {
-        version: '1.0',
+        version: '2.0',
         exportedAt: new Date().toISOString(),
-        studentName: user?.displayName || '학습자 (Josh)',
+        studentName: user?.displayName || '회원',
         history: {
           userId: user?.uid || 'guest',
           userEmail: user?.email || '',
-          displayName: user?.displayName || '학습자',
+          displayName: user?.displayName || '회원',
           lastSyncedAt: new Date().toISOString(),
           completedSectionIds: completedIds,
           visitHistory: visitHistory,
@@ -327,7 +390,7 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `science_ch18_backup_${(user?.displayName || 'student').replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `science_ch18_backup_${(user?.displayName || 'member').replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -372,9 +435,6 @@ export default function App() {
         if (data.voiceJournals && typeof data.voiceJournals === 'object') {
           localStorage.setItem('ch18_voice_journals', JSON.stringify(data.voiceJournals));
         }
-        if (data.studentName) {
-          handleStartLocalProfile(data.studentName);
-        }
         showToast('백업 파일에서 모든 학습 기록을 성공적으로 복원했습니다!');
       } catch (err) {
         console.error('Failed to import backup:', err);
@@ -384,129 +444,12 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  const handleGoogleSignOut = async () => {
-    await googleSignOut();
-    setUser(null);
-    setToken(null);
-    setDriveFolderId(null);
-    setDriveFiles([]);
-    showToast('로그아웃되었습니다.');
-  };
-
-  // Sync data to Google Drive
-  const handleConfirmSyncToDrive = async () => {
-    if (!token && !user) {
-      setIsSyncModalOpen(false);
-      handleGoogleSignIn();
-      return;
-    }
-
-    const activeToken = token || (await getAccessToken());
-    if (!activeToken) {
-      setIsSyncModalOpen(false);
-      handleGoogleSignIn();
-      return;
-    }
-
-    setIsSyncing(true);
-    try {
-      const historyPayload: LearningHistoryData = {
-        userId: user?.uid || 'guest',
-        userEmail: user?.email || '',
-        displayName: user?.displayName || '학습자',
-        lastSyncedAt: new Date().toISOString(),
-        completedSectionIds: completedIds,
-        visitHistory: visitHistory,
-        quizScores: quizScores
-      };
-
-      const result = await syncDataToGoogleDrive(activeToken, {
-        history: historyPayload,
-        customVocabulary: customWords,
-        textHighlights: textHighlights,
-        blogPosts: loadAllBlogPosts()
-      });
-
-      setDriveFolderId(result.folderId);
-      const nowStr = new Date().toISOString();
-      setLastSyncedAt(nowStr);
-      localStorage.setItem('ch18_last_synced_at', nowStr);
-
-      // Refresh files list
-      const files = await listFolderFiles(activeToken, result.folderId);
-      setDriveFiles(files);
-
-      setIsSyncModalOpen(false);
-      showToast('Google Drive에 학습 이력, 용어 사전 및 형광펜/밑줄이 성공적으로 저장되었습니다!');
-    } catch (error: any) {
-      console.error('Drive Sync Error:', error);
-      showToast('Google Drive 동기화 중 오류가 발생했습니다. 권한을 확인해주세요.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Load data from Google Drive
-  const handleLoadFromDrive = async () => {
-    const activeToken = token || (await getAccessToken());
-    if (!activeToken) {
-      handleGoogleSignIn();
-      return;
-    }
-
-    setIsLoadingFromDrive(true);
-    try {
-      const data = await loadDataFromGoogleDrive(activeToken);
-      if (data.folderId) setDriveFolderId(data.folderId);
-
-      if (data.history) {
-        if (data.history.completedSectionIds) {
-          setCompletedIds(data.history.completedSectionIds);
-        }
-        if (data.history.visitHistory) {
-          setVisitHistory(data.history.visitHistory);
-          localStorage.setItem('ch18_visit_history', JSON.stringify(data.history.visitHistory));
-        }
-        if (data.history.quizScores) {
-          setQuizScores(data.history.quizScores);
-          localStorage.setItem('ch18_quiz_scores', JSON.stringify(data.history.quizScores));
-        }
-      }
-
-      if (data.customVocabulary && data.customVocabulary.length > 0) {
-        setCustomWords(data.customVocabulary);
-      }
-
-      if (data.textHighlights && Array.isArray(data.textHighlights) && data.textHighlights.length > 0) {
-        setTextHighlights(data.textHighlights);
-        localStorage.setItem('ch18_text_highlights', JSON.stringify(data.textHighlights));
-      }
-
-      if (data.blogPosts && typeof data.blogPosts === 'object' && Object.keys(data.blogPosts).length > 0) {
-        localStorage.setItem('ch18_study_blog_posts', JSON.stringify(data.blogPosts));
-      }
-
-      if (data.folderId) {
-        const files = await listFolderFiles(activeToken, data.folderId);
-        setDriveFiles(files);
-      }
-
-      showToast('Google Drive에서 학습 이력, 단어장, 형광펜 및 학습 정리를 성공적으로 불러왔습니다!');
-    } catch (error) {
-      console.error('Load Error:', error);
-      showToast('Google Drive에서 데이터를 불러오지 못했습니다.');
-    } finally {
-      setIsLoadingFromDrive(false);
-    }
-  };
-
   const toggleSectionCompletion = (id: string) => {
     setCompletedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
-  // Open Glossary directly in the page
   const handleOpenGlossary = (tab: 'key-terms' | 'custom-words' | 'flashcards' = 'key-terms') => {
     setGlossaryTab(tab);
     setCurrentViewMode('glossary');
@@ -514,32 +457,59 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Open My Learning Record in-page
   const handleOpenMyRecord = () => {
     setCurrentViewMode('my-record');
     setActiveTopTab('my-record');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAddCustomWord = (wordData: { 
-    word: string; 
-    meaning: string; 
-    contextSentence?: string; 
-    sourceSectionTitle?: string; 
-    sourcePage?: number 
-  }) => {
-    const newEntry: CustomWord = {
-      id: `word_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      word: wordData.word,
-      meaning: wordData.meaning,
-      contextSentence: wordData.contextSentence,
-      sourceSectionTitle: wordData.sourceSectionTitle || currentSection.titleKo,
-      sourcePage: wordData.sourcePage || currentSection.pages[0] || 429,
+  const handleSelectTopTab = (tab: string) => {
+    setActiveTopTab(tab);
+    if (tab === 'home') {
+      setCurrentViewMode('study');
+      setActiveSectionId(sections[0].id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === 'intro') {
+      setCurrentViewMode('study');
+      setActiveSectionId('intro-killer-air');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === '18A') {
+      setCurrentViewMode('study');
+      setActiveSectionId('sec-18-1-air-care');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === '18B') {
+      setCurrentViewMode('study');
+      setActiveSectionId('sec-18-6-ozone');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === '18C') {
+      setCurrentViewMode('study');
+      setActiveSectionId('sec-18-9-radiant-sun');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === 'glossary') {
+      handleOpenGlossary('key-terms');
+    } else if (tab === 'review-30') {
+      setCurrentViewMode('study');
+      setActiveSectionId('sec-chapter-review-30');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === 'my-record') {
+      handleOpenMyRecord();
+    }
+  };
+
+  const handleAddCustomWord = (wordData: Omit<CustomWord, 'id' | 'addedAt' | 'isMemorized'>) => {
+    const existing = customWords.find((w) => w.word.toLowerCase() === wordData.word.toLowerCase());
+    if (existing) {
+      showToast(`'${wordData.word}' 단어가 이미 용어 사전에 등록되어 있습니다.`);
+      return;
+    }
+    const newWord: CustomWord = {
+      ...wordData,
+      id: `word-${Date.now()}`,
       addedAt: Date.now(),
       isMemorized: false
     };
-
-    setCustomWords((prev) => [newEntry, ...prev]);
+    setCustomWords((prev) => [newWord, ...prev]);
+    showToast(`'${wordData.word}' 단어가 나만의 용어 사전에 추가되었습니다!`);
   };
 
   const handleToggleCustomMemorized = (id: string) => {
@@ -550,51 +520,27 @@ export default function App() {
 
   const handleDeleteCustomWord = (id: string) => {
     setCustomWords((prev) => prev.filter((w) => w.id !== id));
+    showToast('단어가 삭제되었습니다.');
   };
 
-  const handleSelectTopTab = (tab: string) => {
-    setActiveTopTab(tab);
-    if (tab === 'glossary') {
-      handleOpenGlossary('key-terms');
-      return;
-    }
-    if (tab === 'my-record') {
-      handleOpenMyRecord();
-      return;
-    }
-
-    setCurrentViewMode('study');
-    if (tab === 'home') {
-      setActiveSectionId(sections[0].id);
-    } else if (tab === 'intro') {
-      setActiveSectionId('intro-killer-air');
-    } else if (tab === '18A') {
-      setActiveSectionId('sec-18-1');
-    } else if (tab === '18B') {
-      setActiveSectionId('sec-18-6');
-    } else if (tab === '18C') {
-      setActiveSectionId('sec-18-9-10');
-    } else if (tab === 'review-30') {
-      setActiveSectionId('sec-chapter-review-30');
+  const goToNextSection = () => {
+    if (currentIndex < sections.length - 1) {
+      setActiveSectionId(sections[currentIndex + 1].id);
+      setCurrentViewMode('study');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const goToPrevSection = () => {
     if (currentIndex > 0) {
       setActiveSectionId(sections[currentIndex - 1].id);
+      setCurrentViewMode('study');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const goToNextSection = () => {
-    if (currentIndex < sections.length - 1) {
-      setActiveSectionId(sections[currentIndex + 1].id);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNavigateToEvidence = (page: number, _quote?: string) => {
-    const targetSec = sections.find((s) => s.pages.includes(page));
+  const handleNavigateToEvidence = (pageNumber: number) => {
+    const targetSec = sections.find((s) => s.pages.includes(pageNumber));
     if (targetSec) {
       setActiveSectionId(targetSec.id);
       setCurrentViewMode('study');
@@ -644,7 +590,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 1. Top Navigation Bar with Google Sign-in */}
+      {/* 1. Top Navigation Bar with Member Login */}
       <Header
         currentSection={currentSection}
         completedSectionIds={completedIds}
@@ -656,14 +602,14 @@ export default function App() {
         customWordsCount={customWords.length}
         user={user}
         onOpenMyRecord={handleOpenMyRecord}
-        onGoogleSignIn={handleGoogleSignIn}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
       />
 
       {/* Main Container: Left Sidebar + Right Scrollable Main Content */}
       <div className="flex-1 flex max-w-[1720px] w-full mx-auto relative">
-        {/* Left Sidebar (Toggleable & Responsive drawer) */}
+        {/* Left Sidebar */}
         <Sidebar
           sections={sections}
           activeSectionId={activeSectionId}
@@ -685,28 +631,23 @@ export default function App() {
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Right Main Content Canvas (Expanded width for focused reading in portrait mode) */}
+        {/* Right Main Content Canvas */}
         <main className={`flex-1 min-w-0 p-3.5 sm:p-6 lg:p-10 ${isSidebarOpen ? 'max-w-5xl' : 'max-w-6xl'} mx-auto transition-all duration-200`}>
           {/* ======================================================== */}
-          {/* 1. In-Page My Learning Record & Drive View              */}
+          {/* 1. In-Page My Learning Record View (Firebase Cloud Sync) */}
           {/* ======================================================== */}
           {currentViewMode === 'my-record' ? (
             <MyLearningRecordView
               user={user}
-              onGoogleSignIn={handleGoogleSignIn}
-              onGoogleSignOut={handleGoogleSignOut}
-              onStartLocalProfile={handleStartLocalProfile}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onSignOut={handleSignOut}
               onExportBackup={handleExportBackup}
               onImportBackup={handleImportBackup}
-              isLoggingIn={isLoggingIn}
+              onManualSyncToFirebase={handleManualSyncToFirebase}
+              isSyncingToFirebase={isSyncingToFirebase}
               history={currentHistoryPayload}
               customWords={customWords}
               sections={sections}
-              folderId={driveFolderId}
-              driveFiles={driveFiles}
-              onOpenSyncModal={() => setIsSyncModalOpen(true)}
-              onLoadFromDrive={handleLoadFromDrive}
-              isLoadingFromDrive={isLoadingFromDrive}
               onBackToStudy={() => {
                 setCurrentViewMode('study');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -719,7 +660,7 @@ export default function App() {
             />
           ) : currentViewMode === 'glossary' ? (
             /* ======================================================== */
-            /* 2. In-Page Glossary & My Vocabulary View (Non-popup)     */
+            /* 2. In-Page Glossary & My Vocabulary View                 */
             /* ======================================================== */
             <GlossaryPageView
               keyTerms={keyTermsList}
@@ -739,7 +680,7 @@ export default function App() {
             /* 3. Regular Chapter Section Study View                   */
             /* ======================================================== */
             <>
-              {/* Breadcrumb strip matching screenshot (blue tinted box) */}
+              {/* Breadcrumb strip */}
               <div className="bg-blue-50/70 border border-blue-100 rounded px-4 py-2.5 text-xs text-blue-700 font-medium mb-5 flex items-center justify-between">
                 <div className="flex items-center space-x-2 truncate">
                   <span className="font-bold text-blue-900">{currentSection.titleEn}</span>
@@ -749,14 +690,14 @@ export default function App() {
                 <div className="flex items-center space-x-3 text-[11px] text-blue-500 font-mono">
                   {user && (
                     <span className="hidden sm:inline text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-sans">
-                      ● Drive 동기화 준비됨
+                      ● Firebase 실시간 저장 활성화
                     </span>
                   )}
                   <span>교재 {currentSection.pages.join(', ')}p</span>
                 </div>
               </div>
 
-              {/* Action Header Banner matching reference screenshot */}
+              {/* Action Header Banner */}
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg p-3 sm:p-4 mb-6 shadow-xs">
                 <div className="flex items-center space-x-2">
                   <span className="bg-blue-600 text-white font-bold text-xs px-2.5 py-1 rounded">
@@ -770,7 +711,7 @@ export default function App() {
                   </span>
                 </div>
 
-                {/* Steps tracker matching reference image (dashes + fraction) */}
+                {/* Steps tracker */}
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-1">
                     {[0, 1, 2, 3].map((step) => (
@@ -788,27 +729,24 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Title Area: English First (Textbook original title), Korean Second */}
+              {/* Title Area */}
               <div className="mb-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start space-x-3.5">
-                    {/* Black square badge with number identical to reference image */}
                     <div className="w-9 h-9 sm:w-10 sm:h-10 bg-black text-white font-bold text-base sm:text-lg rounded flex items-center justify-center shrink-0 shadow-xs">
                       {currentSection.numberBadge}
                     </div>
                     <div>
-                      {/* English Textbook Title in H1 */}
                       <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
                         {currentSection.titleEn}
                       </h1>
-                      {/* Korean Translation in H2 */}
                       <h2 className="text-sm sm:text-base font-semibold text-blue-700 mt-1 flex items-center space-x-1.5">
                         <span>{currentSection.titleKo}</span>
                       </h2>
                     </div>
                   </div>
 
-                  {/* Right tools: Question quick link + Checkbox 완료 */}
+                  {/* Right tools */}
                   <div className="flex items-center space-x-3 shrink-0 pt-1">
                     <button
                       onClick={() => handleOpenGlossary('custom-words')}
@@ -829,7 +767,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 목표 (Objectives) Box with blue left bar identical to reference image */}
+                {/* 목표 (Objectives) Box */}
                 <div className="border-l-4 border-blue-600 bg-gray-50/80 p-4 rounded-r my-5 text-xs sm:text-sm text-gray-800 leading-relaxed shadow-2xs">
                   <span className="font-bold text-gray-900 block sm:inline mr-2">
                     목표 · Objectives:
@@ -840,7 +778,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* [교재 원문 & 활동 탭 스트립] - 모든 복습 섹션(18A, 18B, 18C Review, 18 Review) 및 요약에서는 제외 */}
+              {/* [교재 원문 & 활동 탭 스트립] */}
               {!isReviewOrSummarySection && (
                 <>
                   <TextbookReader
@@ -853,11 +791,11 @@ export default function App() {
                     onClearSectionHighlights={handleClearSectionHighlights}
                   />
 
-                  {/* [활동 탭 스트립] - 셀프 학습 · 학습 정리 · 추천 자료 · 탐구 실습 4개 활동 통합 */}
+                  {/* [활동 탭 스트립] */}
                   <ActivityTabStrip 
                     section={currentSection} 
                     user={user} 
-                    onGoogleSignIn={handleGoogleSignIn} 
+                    onOpenAuthModal={() => setIsAuthModalOpen(true)} 
                   />
                 </>
               )}
@@ -873,7 +811,7 @@ export default function App() {
                 />
               )}
 
-              {/* If the current section is a quiz/review module, render interactive quiz directly! */}
+              {/* Quiz view */}
               {currentSection.questions && currentSection.questions.length > 0 && (
                 <div className="my-8">
                   <QuizView
@@ -900,14 +838,6 @@ export default function App() {
                 </button>
 
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setIsSyncModalOpen(true)}
-                    className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
-                  >
-                    <CloudCheck className="w-4 h-4 text-blue-600" />
-                    <span>Drive에 진도 백업</span>
-                  </button>
-
                   <button
                     onClick={() => toggleSectionCompletion(currentSection.id)}
                     className={`px-4 py-2 rounded text-xs sm:text-sm font-bold transition-colors flex items-center space-x-1.5 cursor-pointer ${
@@ -939,16 +869,11 @@ export default function App() {
         </main>
       </div>
 
-      {/* Mandatory User Confirmation Dialog for Google Drive Sync */}
-      <DriveSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        onConfirmSync={handleConfirmSyncToDrive}
-        isSyncing={isSyncing}
-        userEmail={user?.email || '로그인 필요'}
-        completedCount={completedIds.length}
-        customWordCount={customWords.length}
-        quizScoreCount={Object.keys(quizScores).length}
+      {/* Member Sign Up & Login Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
       />
 
       {/* Track Selector Modal */}
@@ -959,16 +884,7 @@ export default function App() {
         onSelectTrack={(track) => setCurrentTrack(track)}
       />
 
-      {/* Login Assist & Guidance Modal (Domain whitelist & Guest fallback) */}
-      <LoginAssistModal
-        isOpen={isLoginAssistOpen}
-        errorInfo={authErrorInfo}
-        onClose={() => setIsLoginAssistOpen(false)}
-        onRetry={handleGoogleSignIn}
-        onStartGuestMode={handleGuestLogin}
-      />
-
-      {/* Floating Outline Toggle Button for Mobile Portrait Mode */}
+      {/* Floating Outline Toggle Button for Mobile */}
       {!isSidebarOpen && (
         <button
           onClick={() => setIsSidebarOpen(true)}

@@ -10,14 +10,10 @@
  * 4. Fallbacks to provisioned project credentials so runtime NEVER fails with invalid API key
  */
 
-// Dynamically check for local config file using import.meta.glob
-const localConfigModules = import.meta.glob<Record<string, any>>(
-  '../../firebase-applet-config.json',
-  { eager: true, import: 'default' }
-);
-
-const localConfig: Record<string, any> =
-  localConfigModules['../../firebase-applet-config.json'] || {};
+// Dynamically load firebase-applet-config.json if present; if deleted, glob returns empty object instead of crashing build
+const configFiles = import.meta.glob<{ default: Record<string, any> }>('/firebase-applet-config.json', { eager: true });
+const loadedConfigModule = configFiles['/firebase-applet-config.json'];
+const localConfig: Record<string, any> = (loadedConfigModule?.default || loadedConfigModule || {}) as Record<string, any>;
 
 // Standard project identifiers for Google Cloud / Firebase project: primeval-falcon-387715
 export const DEFAULT_PROJECT_ID = 'primeval-falcon-387715';

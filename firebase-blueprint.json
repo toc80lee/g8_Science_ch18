@@ -1,8 +1,41 @@
 {
   "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered member profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string" },
+        "schoolGrade": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["uid", "displayName", "createdAt"]
+    },
+    "LearningRecord": {
+      "title": "LearningRecord",
+      "description": "Comprehensive study progress and history per registered member",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "displayName": { "type": "string" },
+        "completedSectionIds": { "type": "string" },
+        "visitHistory": { "type": "string" },
+        "quizScores": { "type": "string" },
+        "customVocabulary": { "type": "string" },
+        "textHighlights": { "type": "string" },
+        "lastSyncedAt": { "type": "string" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "displayName", "updatedAt"]
+    },
     "StudySummary": {
       "title": "StudySummary",
-      "description": "Student self-directed study summary post for a specific science textbook section",
+      "description": "Member self-directed study summary post for a specific science textbook section",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -25,7 +58,7 @@
     },
     "SummaryComment": {
       "title": "SummaryComment",
-      "description": "Feedback or comment left on a study summary post by a classmate or parent signed in with Google",
+      "description": "Feedback or comment left on a study summary post by a registered member or parent",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -42,13 +75,21 @@
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Member user profile documents"
+    },
+    "/learning_records/{userId}": {
+      "schema": "LearningRecord",
+      "description": "Learning progress and study records stored per member"
+    },
     "/study_summaries/{summaryId}": {
       "schema": "StudySummary",
-      "description": "Publicly readable study summaries posted by signed-in students"
+      "description": "Shared study summaries created by registered members"
     },
     "/study_summaries/{summaryId}/comments/{commentId}": {
       "schema": "SummaryComment",
-      "description": "Publicly readable comments attached to a study summary, writable by signed-in users"
+      "description": "Comments left on study summaries by registered members"
     }
   }
 }
