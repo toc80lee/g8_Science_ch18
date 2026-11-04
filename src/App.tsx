@@ -824,19 +824,7 @@ export default function App() {
 
               {/* Bottom Pagination Buttons */}
               <div className="mt-10 pt-6 border-t border-gray-200 flex items-center justify-between">
-                <button
-                  onClick={goToPrevSection}
-                  disabled={currentIndex === 0}
-                  className={`flex items-center space-x-1.5 px-4 py-2 rounded text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
-                    currentIndex === 0
-                      ? 'text-gray-300 bg-gray-50 cursor-not-allowed'
-                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                  }`}
-                  aria-label="이전 섹션"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="font-bold">&lt;</span>
-                </button>
+                <div />
 
                 <div className="flex items-center space-x-2">
                   <button
@@ -855,15 +843,14 @@ export default function App() {
                 <button
                   onClick={goToNextSection}
                   disabled={currentIndex === sections.length - 1}
-                  className={`flex items-center space-x-1.5 px-4 py-2 rounded text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+                  className={`flex items-center justify-center w-10 h-9 rounded text-xs sm:text-sm font-bold transition-colors cursor-pointer ${
                     currentIndex === sections.length - 1
                       ? 'text-gray-300 bg-gray-50 cursor-not-allowed'
                       : 'text-white bg-blue-600 hover:bg-blue-700'
                   }`}
                   aria-label="다음 섹션"
                 >
-                  <span className="font-bold">&gt;</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
             </>

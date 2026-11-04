@@ -83,10 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
         title={cleanTitle}
       >
-        <div className="flex items-start space-x-2 min-w-0 pr-1">
-          <span className="text-gray-400 font-mono text-xs w-4 text-right shrink-0 pt-0.5">
-            {displayIndex}
-          </span>
+        <div className="flex items-start space-x-1 min-w-0 pr-1">
           <div className="flex flex-col min-w-0 truncate">
             {/* English Title with redundant Section/Chapter omitted */}
             <span className="truncate font-semibold text-xs sm:text-[13px] text-gray-900 group-hover:text-blue-700">

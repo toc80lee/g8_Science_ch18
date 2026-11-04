@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
                 activeTopTab === 'home' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              홈
+              Home
             </button>
             <button
               onClick={() => onSelectTopTab('intro')}
@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
                 activeTopTab === 'intro' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              개요
+              Overview
             </button>
             <button
               onClick={() => onSelectTopTab('18A')}
@@ -117,28 +117,23 @@ export const Header: React.FC<HeaderProps> = ({
                 activeTopTab === 'glossary' ? 'text-blue-600 font-semibold border-b-2 border-blue-600' : 'hover:text-gray-900'
               }`}
             >
-              <span>용어 사전</span>
-              {customWordsCount > 0 && (
-                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
-                  +{customWordsCount}
-                </span>
-              )}
+              <span>Vaca</span>
             </button>
             <button
               onClick={() => onSelectTopTab('review-30')}
               className="text-blue-600 font-medium hover:underline flex items-center space-x-1 cursor-pointer"
             >
-              <span>종합 30제</span>
+              <span>Review</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </nav>
 
-          {/* Action Button: 트랙 선택 */}
+          {/* Action Button: Track */}
           <button
             onClick={onOpenTrackSelect}
             className="hidden sm:inline-block px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded transition-colors cursor-pointer"
           >
-            트랙 선택
+            Track
           </button>
 
           {/* Progress Indicator */}

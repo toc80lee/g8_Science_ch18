@@ -552,40 +552,26 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
 
           {/* 1. Interactive Recording Console */}
           <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-2xs space-y-4">
-            {/* Top Prompt Guidance for Kids */}
-            <div className="bg-amber-50/70 border border-amber-200/80 rounded-lg p-3 text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center space-x-2">
-                <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
-                <span className="font-bold">아이를 위한 말하기 가이드:</span>
-                <span className="text-amber-800">
-                  교재를 보지 않고 기억나는 대로 "이 단원에서 무엇을 배웠는지, 어떤 원리가 있었는지" 소리내어 말해보세요!
-                </span>
-              </div>
-              <div className="flex items-center space-x-1 shrink-0">
-                <span className="text-[11px] text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded font-mono">
-                  권장 시간: 30초~2분
-                </span>
-              </div>
-            </div>
-
             {/* Microphone Recording Control Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-amber-50 via-yellow-50/60 to-white p-3.5 rounded-xl border border-amber-200">
               <div className="flex items-center space-x-3">
                 {isRecording ? (
                   <button
                     onClick={handleStopRecording}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer animate-pulse"
+                    className="flex items-center justify-center p-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-lg shadow-sm transition-all cursor-pointer animate-pulse"
+                    title="녹음 중지 & 저장"
+                    aria-label="녹음 중지"
                   >
-                    <Square className="w-4 h-4 fill-current" />
-                    <span>녹음 중지 & 저장</span>
+                    <Square className="w-5 h-5 fill-current" />
                   </button>
                 ) : (
                   <button
                     onClick={handleStartRecording}
-                    className="flex items-center space-x-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-lg shadow-sm transition-all cursor-pointer"
+                    className="flex items-center justify-center p-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-lg shadow-sm transition-all cursor-pointer"
+                    title="마이크 켜고 말하기"
+                    aria-label="마이크 켜고 말하기"
                   >
-                    <Mic className="w-4 h-4" />
-                    <span>{transcript ? '다시 녹음하기' : '마이크 켜고 말하기 시작'}</span>
+                    <Mic className="w-5 h-5" />
                   </button>
                 )}
 
@@ -692,18 +678,14 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
             </div>
 
             {/* Run Analysis Action Button */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <p className="text-[11px] text-gray-500">
-                💡 녹음이 끝나면 아래 버튼을 눌러 교과서 필수 개념을 다 배웠는지 AI 분석을 받아보세요.
-              </p>
-
+            <div className="flex justify-end pt-2">
               <button
                 onClick={handleAnalyzeJournal}
                 disabled={isRecording || isAnalyzing || !transcript.trim()}
                 className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-lg shadow-md transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Sparkles className={`w-4 h-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
-                <span>{isAnalyzing ? '배운 내용 분석 중...' : '오늘 배운 내용 분석 & 피드백 받기 →'}</span>
+                <span>{isAnalyzing ? 'Analyzing...' : 'Feedback'}</span>
               </button>
             </div>
           </div>
