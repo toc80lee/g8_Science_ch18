@@ -37,9 +37,11 @@ export const loadAllBlogPosts = (): Record<string, BlogPost[]> => {
   }
 };
 
-export const getBlogPostsForSection = (section: ChapterSection): BlogPost[] => {
+export const getBlogPostsForSection = (sectionOrId: ChapterSection | string): BlogPost[] => {
+  const sectionId = typeof sectionOrId === 'string' ? sectionOrId : sectionOrId?.id;
+  if (!sectionId) return [];
   const allPosts = loadAllBlogPosts();
-  const list = allPosts[section.id];
+  const list = allPosts[sectionId];
   if (Array.isArray(list)) {
     return list.filter(p => !p.id.startsWith('seed-'));
   }

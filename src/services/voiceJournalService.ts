@@ -2,9 +2,105 @@ import { ChapterSection, JournalFeedback, VoiceJournalEntry } from '../types';
 import { GoogleGenAI } from '@google/genai';
 
 const STORAGE_KEY = 'ch18_voice_journals';
+const LIST_STORAGE_KEY = 'ch18_voice_journals_list';
 
 /**
- * Load all stored voice journals from localStorage
+ * Load all stored voice journal entries as an array
+ */
+export const loadAllVoiceJournalList = (): VoiceJournalEntry[] => {
+  try {
+    const raw = localStorage.getItem(LIST_STORAGE_KEY);
+    const list: VoiceJournalEntry[] = raw ? JSON.parse(raw) : [];
+
+    // Also check legacy single-entry storage if list is empty
+    if (list.length === 0) {
+      const legacyRaw = localStorage.getItem(STORAGE_KEY);
+      if (legacyRaw) {
+        const legacyMap: Record<string, VoiceJournalEntry> = JSON.parse(legacyRaw);
+        const legacyEntries = Object.values(legacyMap);
+        if (legacyEntries.length > 0) {
+          localStorage.setItem(LIST_STORAGE_KEY, JSON.stringify(legacyEntries));
+          return legacyEntries;
+        }
+      }
+    }
+    return list;
+  } catch (err) {
+    console.error('Failed to load voice journals list:', err);
+    return [];
+  }
+};
+
+/**
+ * Get all saved voice journals for a specific section (newest first)
+ */
+export const getJournalListForSection = (sectionId: string): VoiceJournalEntry[] => {
+  const all = loadAllVoiceJournalList();
+  return all
+    .filter((entry) => entry.sectionId === sectionId)
+    .sort((a, b) => (b.recordedAt || 0) - (a.recordedAt || 0));
+};
+
+/**
+ * Save entry to list and also update legacy latest
+ */
+export const saveVoiceJournalToList = (entry: VoiceJournalEntry): VoiceJournalEntry[] => {
+  try {
+    const all = loadAllVoiceJournalList();
+    // Check if updating existing
+    const existingIndex = all.findIndex((e) => e.id === entry.id);
+    let updated: VoiceJournalEntry[];
+    if (existingIndex >= 0) {
+      updated = [...all];
+      updated[existingIndex] = entry;
+    } else {
+      updated = [entry, ...all];
+    }
+    localStorage.setItem(LIST_STORAGE_KEY, JSON.stringify(updated));
+
+    // Also update legacy single-entry map
+    const legacy = loadAllVoiceJournals();
+    legacy[entry.sectionId] = entry;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+
+    return updated.filter((e) => e.sectionId === entry.sectionId);
+  } catch (err) {
+    console.error('Failed to save voice journal to list:', err);
+    return getJournalListForSection(entry.sectionId);
+  }
+};
+
+/**
+ * Delete a voice journal entry by ID
+ */
+export const deleteVoiceJournalFromList = (
+  sectionId: string,
+  entryId: string
+): VoiceJournalEntry[] => {
+  try {
+    const all = loadAllVoiceJournalList();
+    const updated = all.filter((e) => e.id !== entryId);
+    localStorage.setItem(LIST_STORAGE_KEY, JSON.stringify(updated));
+
+    // Also update legacy latest if needed
+    const remainingForSection = updated.filter((e) => e.sectionId === sectionId);
+    const legacy = loadAllVoiceJournals();
+    if (remainingForSection.length > 0) {
+      legacy[sectionId] = remainingForSection[0];
+    } else {
+      delete legacy[sectionId];
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+
+    return remainingForSection;
+  } catch (err) {
+    console.error('Failed to delete voice journal entry:', err);
+    return getJournalListForSection(sectionId);
+  }
+};
+
+/**
+ * Load all stored voice journals from localStorage (Legacy map)
  */
 export const loadAllVoiceJournals = (): Record<string, VoiceJournalEntry> => {
   try {
@@ -17,34 +113,32 @@ export const loadAllVoiceJournals = (): Record<string, VoiceJournalEntry> => {
 };
 
 /**
- * Save a single journal entry
+ * Save a single journal entry (Legacy)
  */
 export const saveVoiceJournal = (entry: VoiceJournalEntry): void => {
-  try {
-    const all = loadAllVoiceJournals();
-    all[entry.sectionId] = entry;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-  } catch (err) {
-    console.error('Failed to save voice journal:', err);
-  }
+  saveVoiceJournalToList(entry);
 };
 
 /**
- * Get the latest journal for a specific section
+ * Get the latest journal for a specific section (Legacy)
  */
 export const getJournalForSection = (sectionId: string): VoiceJournalEntry | null => {
-  const all = loadAllVoiceJournals();
-  return all[sectionId] || null;
+  const list = getJournalListForSection(sectionId);
+  return list.length > 0 ? list[0] : null;
 };
 
 /**
- * Delete a journal entry for a section
+ * Delete a journal entry for a section (Legacy)
  */
 export const deleteVoiceJournal = (sectionId: string): void => {
   try {
-    const all = loadAllVoiceJournals();
-    delete all[sectionId];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    const all = loadAllVoiceJournalList();
+    const updated = all.filter((e) => e.sectionId !== sectionId);
+    localStorage.setItem(LIST_STORAGE_KEY, JSON.stringify(updated));
+
+    const legacy = loadAllVoiceJournals();
+    delete legacy[sectionId];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
   } catch (err) {
     console.error('Failed to delete voice journal:', err);
   }

@@ -753,7 +753,7 @@ export default function App() {
                       className="text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded font-semibold hidden sm:inline-flex items-center space-x-1 transition-colors cursor-pointer"
                     >
                       <Bookmark className="w-3.5 h-3.5 text-amber-600" />
-                      <span>나만의 사전 ({customWords.length})</span>
+                      <span>Vocabulary ({customWords.length})</span>
                     </button>
                     <label className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 rounded hover:bg-gray-50 cursor-pointer text-xs font-medium text-gray-700 transition-colors">
                       <input
@@ -767,10 +767,10 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* 목표 (Objectives) Box */}
+                {/* 목표 Box */}
                 <div className="border-l-4 border-blue-600 bg-gray-50/80 p-4 rounded-r my-5 text-xs sm:text-sm text-gray-800 leading-relaxed shadow-2xs">
                   <span className="font-bold text-gray-900 block sm:inline mr-2">
-                    목표 · Objectives:
+                    목표:
                   </span>
                   <span>
                     {currentSection.objectives.join(' ')}
@@ -832,9 +832,10 @@ export default function App() {
                       ? 'text-gray-300 bg-gray-50 cursor-not-allowed'
                       : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
                   }`}
+                  aria-label="이전 섹션"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  <span>이전 섹션</span>
+                  <span className="font-bold">&lt;</span>
                 </button>
 
                 <div className="flex items-center space-x-2">
@@ -859,8 +860,9 @@ export default function App() {
                       ? 'text-gray-300 bg-gray-50 cursor-not-allowed'
                       : 'text-white bg-blue-600 hover:bg-blue-700'
                   }`}
+                  aria-label="다음 섹션"
                 >
-                  <span>다음 섹션</span>
+                  <span className="font-bold">&gt;</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>

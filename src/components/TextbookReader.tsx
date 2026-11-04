@@ -909,9 +909,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                   p. {section.pages.join(', ')} · 본문 완전 수록
                 </span>
               </h4>
-              <p className="text-xs text-gray-500 mt-0.5">
-                교재 원본 고화질 삽화, 기온 곡선 그래프, 사진 및 한·영 텍스트를 한눈에 볼 수 있습니다.
-              </p>
             </div>
           </div>
 

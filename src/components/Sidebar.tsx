@@ -170,16 +170,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   · Course Overview
                 </button>
-                <button
-                  onClick={() => handleItemClick(() => onSelectSection('intro-killer-air'))}
-                  className={`w-full text-left py-1.5 px-4 text-xs sm:text-sm cursor-pointer ${
-                    activeSectionId === 'intro-killer-air'
-                      ? 'bg-blue-50 font-bold text-blue-900 border-l-4 border-blue-600 pl-3'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  · Killer Air (Intro Case Study)
-                </button>
               </div>
 
               {/* 2. 18A */}
@@ -229,7 +219,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <BookMarked className="w-3.5 h-3.5 text-blue-600 mr-1" />
-                    <span>Key Science Glossary</span>
+                    <span>Glossary</span>
                   </div>
                   <span className="text-[10px] text-gray-400 font-mono">21</span>
                 </button>
@@ -244,7 +234,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <span className="text-amber-500 font-bold mr-1">★</span>
-                    <span className="font-medium text-amber-900">My Custom Vocabulary</span>
+                    <span className="font-medium text-amber-900">Vocabulary</span>
                   </div>
                   <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
                     {customWordsCount}
@@ -261,7 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <div className="flex items-center space-x-1.5">
                     <span className="text-blue-600 font-bold mr-1">📁</span>
-                    <span className="font-medium text-gray-900">Study Records & Drive</span>
+                    <span className="font-medium text-gray-900">Records</span>
                   </div>
                   <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded-full">
                     MY

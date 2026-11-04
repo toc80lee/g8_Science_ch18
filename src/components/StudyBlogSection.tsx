@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { ChapterSection, BlogPost, BlogComment } from '../types';
 import { 
+  getBlogPostsForSection,
+  saveBlogPostsForSection,
   fetchBlogPostsForSection,
   subscribeToSectionBlogPosts, 
   createBlogPost, 
@@ -28,7 +30,13 @@ import {
   Globe2,
   Clock,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  BookOpen,
+  Eye,
+  PenSquare
 } from 'lucide-react';
 
 interface StudyBlogSectionProps {
@@ -44,10 +52,14 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
   user = null,
   onOpenAuthModal
 }) => {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isEditorVisible, setIsEditorVisible] = useState(true);
+  // 1. Immediately initialize with cached local posts so saved work is NEVER blank or hidden
+  const [posts, setPosts] = useState<BlogPost[]>(() => getBlogPostsForSection(section.id));
+  const [isLoading, setIsLoading] = useState<boolean>(() => getBlogPostsForSection(section.id).length === 0);
+  const [isEditorVisible, setIsEditorVisible] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+
+  // Accordion list state: IDs of posts currently expanded (by default, list items are collapsed for clean overview)
+  const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(() => new Set());
 
   // Editor form state: completely clean blank slate
   const [title, setTitle] = useState('');
@@ -82,28 +94,35 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     }
   }, [user]);
 
-  // Load and listen for real-time posts from Firebase Firestore
+  // Load and listen for real-time posts from Firebase Firestore and localStorage
   useEffect(() => {
-    setIsLoading(true);
+    // 1. Instantly display locally cached posts
+    const localCached = getBlogPostsForSection(section.id);
+    if (localCached && localCached.length > 0) {
+      setPosts(localCached);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
 
-    // Initial fetch from Firestore
+    // 2. Fetch from Firestore and merge
     fetchBlogPostsForSection(section.id)
       .then((loadedPosts) => {
         setPosts(loadedPosts);
         setIsLoading(false);
       })
       .catch((err) => {
-        console.error('Failed to load posts:', err);
+        console.warn('Notice loading posts from Firestore (local cache active):', err);
         setIsLoading(false);
       });
 
-    // Realtime subscription so any new posts by anyone appear immediately
+    // 3. Realtime subscription so any new posts by anyone appear immediately
     const unsubscribe = subscribeToSectionBlogPosts(section.id, (realtimePosts) => {
       setPosts(realtimePosts);
       setIsLoading(false);
     });
 
-    // Load saved draft if any
+    // 4. Load saved draft if any
     try {
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
@@ -142,6 +161,27 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     }
   }, [title, content, authorName, imageUrl, imageCaption, editingPostId, draftKey]);
 
+  // Accordion Expand / Collapse Handlers
+  const toggleExpandPost = (postId: string) => {
+    setExpandedPostIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  };
+
+  const handleExpandAll = () => {
+    setExpandedPostIds(new Set(posts.map((p) => p.id)));
+  };
+
+  const handleCollapseAll = () => {
+    setExpandedPostIds(new Set());
+  };
+
   // Open clean blank editor for a new post
   const handleStartNewPost = () => {
     setEditingPostId(null);
@@ -158,6 +198,15 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
         editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
+  };
+
+  // Toggle editor visibility
+  const handleToggleEditor = () => {
+    if (isEditorVisible && !editingPostId) {
+      setIsEditorVisible(false);
+    } else {
+      handleStartNewPost();
+    }
   };
 
   // Open editor to edit an existing post
@@ -180,6 +229,9 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     setShowImageOptions(!!post.imageUrl);
     setIsEditorVisible(true);
     setErrorMessage(null);
+
+    // Also expand this post item in the list above
+    setExpandedPostIds((prev) => new Set(prev).add(post.id));
 
     // Scroll to editor smoothly
     setTimeout(() => {
@@ -205,14 +257,14 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Save Post to Firebase or Local Storage under user profile
+  // Save Post to Firebase and Local Storage with rock-solid persistence
   const handleSavePost = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setErrorMessage(null);
 
     const trimmedContent = content.trim();
     if (!trimmedContent) {
-      setErrorMessage('내용을 입력해 주세요.');
+      setErrorMessage('학습 정리 내용을 입력해 주세요.');
       return;
     }
 
@@ -238,6 +290,8 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
         );
         setPosts(updatedList);
         setJustSavedPostId(editingPostId);
+        // Automatically expand the updated post
+        setExpandedPostIds((prev) => new Set(prev).add(editingPostId));
         setSaveFeedback('수정된 학습 정리가 안전하게 저장되었습니다!');
       } else {
         const created = await createBlogPost(
@@ -260,10 +314,13 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
 
         setPosts((prev) => [created, ...prev.filter((p) => p.id !== created.id)]);
         setJustSavedPostId(created.id);
+        // Automatically expand the newly created post so it is fully displayed right away!
+        setExpandedPostIds((prev) => new Set(prev).add(created.id));
+
         if (user) {
           setSaveFeedback(`학습 정리가 Firebase에 성공적으로 저장 및 공유되었습니다! (작성자: ${finalAuthor})`);
         } else {
-          setSaveFeedback(`학습 정리가 기기에 안전하게 저장되었습니다! (작성자: ${finalAuthor})`);
+          setSaveFeedback(`학습 정리가 안전하게 저장되었습니다! (작성자: ${finalAuthor})`);
         }
       }
 
@@ -278,13 +335,13 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
       setImageCaption('');
       setShowImageOptions(false);
 
-      // Smooth scroll to the recorded post so the user can see it immediately
+      // Smooth scroll to the recorded posts list above
       setTimeout(() => {
         const postElement = document.getElementById('saved-posts-section');
         if (postElement) {
           postElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }, 300);
+      }, 150);
 
       // Auto-clear feedback after 6 seconds
       setTimeout(() => {
@@ -292,7 +349,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
       }, 6000);
     } catch (err: any) {
       console.error('Save error:', err);
-      setErrorMessage(`Firebase 저장 실패: ${err?.message || '잠시 후 다시 시도해 주세요.'}`);
+      setErrorMessage(`저장 실패: ${err?.message || '잠시 후 다시 시도해 주세요.'}`);
     } finally {
       setIsSaving(false);
     }
@@ -309,10 +366,15 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
       return;
     }
 
-    if (window.confirm('이 학습 정리를 Firebase에서 완전히 삭제하시겠습니까?')) {
+    if (window.confirm('이 학습 정리를 완전히 삭제하시겠습니까?')) {
       try {
         const updated = await deleteBlogPost(section.id, post.id, user);
         setPosts(updated);
+        setExpandedPostIds((prev) => {
+          const next = new Set(prev);
+          next.delete(post.id);
+          return next;
+        });
         if (editingPostId === post.id) {
           handleStartNewPost();
         }
@@ -428,31 +490,23 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
 
   return (
     <div className={`space-y-6 ${embedded ? '' : 'p-4 sm:p-6 max-w-4xl mx-auto'}`}>
-      {/* Firebase Sync & Google Login Status Header */}
+      {/* Firebase Sync & Member Login Status Header */}
       <div className="bg-gradient-to-r from-purple-50 via-indigo-50/50 to-white border border-purple-200/90 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
             <Globe2 className="w-4 h-4 text-white" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                공유 학습 정리 (Firebase 클라우드 연동)
-              </h4>
-              <span className="text-[10px] font-semibold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                전체 공개
-              </span>
-            </div>
-            <p className="text-[11px] text-gray-500 mt-0.5">
-              작성한 학습 정리는 본인 외에 다른 친구와 부모님도 함께 열람할 수 있습니다.
-            </p>
+            <h4 className="text-xs sm:text-sm font-bold text-gray-900">
+              학습 이력
+            </h4>
           </div>
         </div>
 
         {/* User Status Badge or Login Action */}
         <div className="flex items-center space-x-2 self-end sm:self-center">
           {user ? (
-            <div className="flex items-center space-x-2 bg-white px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs">
+            <div className="flex items-center space-x-2 bg-white px-2.5 py-1.5 rounded-lg border border-purple-200 text-xs shadow-2xs">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" className="w-5 h-5 rounded-full" />
               ) : (
@@ -497,9 +551,392 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
         </div>
       )}
 
-      {/* Editor Card: Clean, simple, blank canvas */}
+      {/* ======================================================== */}
+      {/* 1. [POSITION: TOP] Saved Posts Section                   */}
+      {/* Displays as a clean list first; click line to expand!    */}
+      {/* ======================================================== */}
+      <div id="saved-posts-section" className="space-y-4 pt-1">
+        <div className="flex flex-wrap items-center justify-between pb-2 border-b border-gray-200 gap-2">
+          <div className="flex items-center space-x-2">
+            <h4 className="text-sm sm:text-base font-bold text-gray-900 flex items-center space-x-2">
+              <span>기록된 학습 정리</span>
+              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full font-bold">
+                {posts.length}개
+              </span>
+            </h4>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {posts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (expandedPostIds.size === posts.length) {
+                    handleCollapseAll();
+                  } else {
+                    handleExpandAll();
+                  }
+                }}
+                className="text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50 px-2.5 py-1.5 rounded-lg font-medium flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+                title="모든 학습 정리 펼치기 또는 접기"
+              >
+                <ChevronsUpDown className="w-3.5 h-3.5 text-purple-600" />
+                <span>{expandedPostIds.size === posts.length ? '전체 접기' : '전체 펼치기'}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleToggleEditor}
+              className="text-xs text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+            >
+              <PenSquare className="w-3.5 h-3.5 text-purple-600" />
+              <span>{isEditorVisible && !editingPostId ? '작성 닫기' : '작성 하기'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Loading Spinner */}
+        {isLoading && posts.length === 0 ? (
+          <div className="p-8 text-center bg-white border border-gray-200 rounded-xl space-y-2">
+            <div className="inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs text-gray-500">Firebase 및 로컬에서 저장된 학습 정리를 불러오는 중입니다...</p>
+          </div>
+        ) : posts.length === 0 ? null : (
+          /* Post Items: List view with on-click expand & collapse */
+          <div className="space-y-3">
+            {posts.map((post) => {
+              const isAuthor = !!(user && post.authorId && user.uid === post.authorId);
+              const isJustSaved = post.id === justSavedPostId;
+              const isExpanded = expandedPostIds.has(post.id);
+              const commentInput = commentInputs[post.id] || { content: '' };
+
+              return (
+                <article
+                  key={post.id}
+                  id={`summary-${post.id}`}
+                  className={`bg-white border rounded-xl shadow-xs overflow-hidden transition-all duration-200 ${
+                    isJustSaved
+                      ? 'border-purple-500 ring-2 ring-purple-300/80'
+                      : isExpanded
+                      ? 'border-purple-300 ring-1 ring-purple-100'
+                      : 'border-gray-200 hover:border-purple-300'
+                  }`}
+                >
+                  {/* Clickable Row Header: click to expand / collapse */}
+                  <div
+                    onClick={() => toggleExpandPost(post.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleExpandPost(post.id);
+                      }
+                    }}
+                    className={`p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer select-none transition-colors ${
+                      isExpanded
+                        ? 'bg-purple-50/40 border-b border-purple-100'
+                        : 'hover:bg-purple-50/25 bg-white'
+                    }`}
+                  >
+                    {/* Left: Expand Chevron + Title + Author Badge */}
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpandPost(post.id);
+                        }}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 cursor-pointer ${
+                          isExpanded
+                            ? 'bg-purple-600 text-white shadow-2xs rotate-0'
+                            : 'bg-gray-100 text-gray-600 hover:bg-purple-100 hover:text-purple-700'
+                        }`}
+                        title={isExpanded ? '내용 접기' : '내용 펼쳐보기'}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h4 className="font-bold text-sm sm:text-base text-gray-900 truncate hover:text-purple-700 transition-colors">
+                            {post.title}
+                          </h4>
+
+                          {isJustSaved && (
+                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full animate-pulse shrink-0">
+                              방금 저장됨
+                            </span>
+                          )}
+                          {isAuthor && (
+                            <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full shrink-0">
+                              내 글
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Author & Date metadata snippet */}
+                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2">
+                          <div className="flex items-center space-x-1">
+                            {post.authorPhotoUrl ? (
+                              <img
+                                src={post.authorPhotoUrl}
+                                alt=""
+                                className="w-3.5 h-3.5 rounded-full"
+                              />
+                            ) : (
+                              <span className="w-3.5 h-3.5 rounded-full bg-purple-600 text-white text-[8px] flex items-center justify-center font-bold">
+                                {post.authorName.charAt(0)}
+                              </span>
+                            )}
+                            <span className="font-medium text-gray-700">{post.authorName}</span>
+                          </div>
+
+                          <span>•</span>
+
+                          <div className="flex items-center space-x-1 text-gray-400 text-[11px]">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+
+                          {!isExpanded && (
+                            <span className="text-[11px] text-gray-400 truncate max-w-[200px] sm:max-w-[320px] hidden md:inline">
+                              - {post.content.slice(0, 40)}...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Counter Badges, Expand Trigger & Actions */}
+                    <div className="flex items-center justify-between sm:justify-end space-x-2 pl-10 sm:pl-0 shrink-0">
+                      <div className="flex items-center space-x-2 text-xs text-gray-500">
+                        {(post.likes || 0) > 0 && (
+                          <span className="flex items-center space-x-1 text-pink-600 font-semibold bg-pink-50 px-2 py-0.5 rounded-full border border-pink-100">
+                            <Heart className="w-3 h-3 fill-pink-500" />
+                            <span>{post.likes}</span>
+                          </span>
+                        )}
+
+                        <span className="flex items-center space-x-1 text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                          <MessageSquare className="w-3 h-3 text-gray-400" />
+                          <span>{post.comments?.length || 0}</span>
+                        </span>
+                      </div>
+
+                      {/* Edit & Delete (Author only) */}
+                      {isAuthor && (
+                        <div className="flex items-center space-x-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(post);
+                            }}
+                            className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-100/60 rounded cursor-pointer transition-colors"
+                            title="수정하기"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePost(post);
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors"
+                            title="삭제하기"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expanded Content Section (펼쳐진 내용 및 댓글 영역) */}
+                  {isExpanded && (
+                    <div className="divide-y divide-gray-100 bg-white animate-in fade-in duration-200">
+                      {/* Post Body */}
+                      <div className="p-4 sm:p-5 space-y-3.5">
+                        <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line font-normal text-justify">
+                          {post.content}
+                        </div>
+
+                        {post.imageUrl && (
+                          <div className="pt-2">
+                            <img
+                              src={post.imageUrl}
+                              alt={post.imageCaption || '첨부 사진'}
+                              className="max-h-80 object-contain rounded-lg border border-gray-200 bg-gray-50 shadow-2xs"
+                            />
+                            {post.imageCaption && (
+                              <p className="text-xs text-gray-500 mt-1.5 font-medium">{post.imageCaption}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Like Action & Comments Counter Bar */}
+                      <div className="px-4 sm:px-5 py-2.5 bg-gray-50/70 flex items-center justify-between text-xs text-gray-600">
+                        <button
+                          type="button"
+                          onClick={() => handleLikePost(post.id)}
+                          className="flex items-center space-x-1.5 hover:text-pink-600 font-semibold cursor-pointer transition-colors"
+                        >
+                          <Heart
+                            className={`w-4 h-4 ${
+                              (post.likes || 0) > 0 ? 'fill-pink-500 text-pink-500' : 'text-gray-400'
+                            }`}
+                          />
+                          <span>좋아요 {post.likes || 0}</span>
+                        </button>
+
+                        <span className="flex items-center space-x-1 text-gray-500">
+                          <MessageSquare className="w-3.5 h-3.5 text-purple-600" />
+                          <span>댓글 {post.comments?.length || 0}개</span>
+                        </span>
+                      </div>
+
+                      {/* Comments Thread */}
+                      <div className="p-4 sm:p-5 bg-gray-50/40 space-y-3">
+                        {post.comments && post.comments.length > 0 && (
+                          <div className="space-y-2">
+                            {post.comments.map((cmt) => {
+                              const isCommentAuthor = !!(user && cmt.authorId === user.uid);
+
+                              return (
+                                <div
+                                  key={cmt.id}
+                                  className="bg-white p-2.5 sm:p-3 rounded-lg border border-gray-200 flex items-start justify-between gap-2 text-xs shadow-2xs"
+                                >
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                      {cmt.authorPhotoUrl ? (
+                                        <img
+                                          src={cmt.authorPhotoUrl}
+                                          alt=""
+                                          className="w-4 h-4 rounded-full"
+                                        />
+                                      ) : (
+                                        <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
+                                          {cmt.authorName.charAt(0)}
+                                        </span>
+                                      )}
+                                      <span className="font-bold text-gray-900">
+                                        {cmt.authorName}
+                                      </span>
+                                      {cmt.authorEmail && (
+                                        <span className="text-[10px] text-gray-400 font-mono hidden sm:inline">
+                                          ({cmt.authorEmail})
+                                        </span>
+                                      )}
+                                      <span className="text-[10px] text-gray-400">
+                                        {new Date(cmt.createdAt).toLocaleTimeString('ko-KR', {
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-700 leading-normal pl-6">
+                                      {cmt.content}
+                                    </p>
+                                  </div>
+
+                                  {isCommentAuthor && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteComment(post.id, cmt)}
+                                      className="text-gray-300 hover:text-red-500 p-0.5 cursor-pointer"
+                                      title="댓글 삭제"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Comment Input */}
+                        {user ? (
+                          <div className="pt-1 space-y-1.5">
+                            <div className="flex items-center space-x-2 text-xs text-gray-600 mb-1">
+                              <span className="font-semibold text-gray-700">
+                                {user.displayName || user.email?.split('@')[0]}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={commentInput.content}
+                                onChange={(e) =>
+                                  handleCommentContentChange(post.id, e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddComment(post.id);
+                                  }
+                                }}
+                                placeholder="응원 댓글이나 생각을 남겨주세요..."
+                                className="flex-1 px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 shadow-2xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddComment(post.id)}
+                                disabled={commentInput.isSubmitting}
+                                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-xs font-semibold cursor-pointer shrink-0 flex items-center justify-center space-x-1 shadow-2xs"
+                              >
+                                <Send className="w-3 h-3" />
+                                <span>{commentInput.isSubmitting ? '등록 중' : '등록'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100/70 border border-gray-200 rounded-lg p-2.5 flex items-center justify-between text-xs">
+                            <span className="text-gray-600">
+                              댓글은 회원으로 로그인한 사람만 작성할 수 있습니다.
+                            </span>
+                            <button
+                              type="button"
+                              onClick={onOpenAuthModal}
+                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded text-xs shrink-0 cursor-pointer flex items-center space-x-1 shadow-2xs"
+                            >
+                              <LogIn className="w-3 h-3" />
+                              <span>로그인 후 댓글 작성</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ======================================================== */}
+      {/* 2. [POSITION: BOTTOM] Editor Card: 나의 학습 정리 작성    */}
+      {/* Positioned BELOW the recorded summaries as requested     */}
+      {/* ======================================================== */}
       {isEditorVisible && (
-        <div className="bg-white border border-purple-200 rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
+        <div id="study-blog-editor-card" className="bg-white border border-purple-200 rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
             <div className="flex items-center space-x-2">
               <span className="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
@@ -524,16 +961,16 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
               <div className="flex items-start space-x-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">회원 로그인이 필요합니다.</span>
+                  <span className="font-bold">회원 로그인이 권장됩니다.</span>
                   <p className="text-amber-700 mt-0.5">
-                    학습 정리를 내 계정 ID로 Firebase에 저장하고 다른 사람들과 공유하려면 회원가입 및 로그인이 필요합니다.
+                    회원으로 로그인하면 본인의 계정 ID로 Firebase에 저장되어 다른 사람들과 함께 볼 수 있으며 댓글도 작성할 수 있습니다.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onOpenAuthModal}
-                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shrink-0 cursor-pointer"
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-xs shrink-0 cursor-pointer shadow-2xs"
               >
                 로그인하기
               </button>
@@ -569,7 +1006,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
               </div>
             </div>
 
-            {/* Content Blank Canvas */}
+            {/* Content Textarea */}
             <div>
               <textarea
                 value={content}
@@ -710,7 +1147,7 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
             {/* Bottom Actions */}
             <div className="flex items-center justify-between pt-1">
               <span className="text-[11px] text-gray-400">
-                {user ? `Google 계정 ID(${user.uid.slice(0, 6)}...)로 Firebase에 저장됩니다.` : '로그인 후 안전하게 클라우드에 저장할 수 있습니다.'}
+                {user ? `회원 ID(${user.uid.slice(0, 8)}...)로 Firebase 및 기기에 안전하게 저장됩니다.` : '작성 즉시 기기와 클라우드에 안전하게 보관됩니다.'}
               </span>
               <div className="flex items-center space-x-2">
                 {(title || content || imageUrl) && (
@@ -740,301 +1177,6 @@ export const StudyBlogSection: React.FC<StudyBlogSectionProps> = ({
           </form>
         </div>
       )}
-
-      {/* Saved Posts Section - Fully visible and clearly structured */}
-      <div id="saved-posts-section" className="space-y-4 pt-2">
-        <div className="flex items-center justify-between pb-1 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <h4 className="text-sm sm:text-base font-bold text-gray-800">
-              기록된 학습 정리 ({posts.length}개)
-            </h4>
-            <span className="text-xs text-gray-500">
-              • 다른 친구들과 함께 보는 공유 공간
-            </span>
-          </div>
-
-          {!isEditorVisible && (
-            <button
-              type="button"
-              onClick={handleStartNewPost}
-              className="text-xs text-purple-700 hover:text-purple-900 font-bold flex items-center space-x-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>새 글 작성</span>
-            </button>
-          )}
-        </div>
-
-        {isLoading ? (
-          <div className="p-8 text-center bg-white border border-gray-200 rounded-xl space-y-2">
-            <div className="inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs text-gray-500">Firebase에서 학습 정리를 불러오는 중입니다...</p>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="p-8 text-center text-xs text-gray-500 bg-gray-50/80 border border-gray-200 rounded-xl space-y-2">
-            <Sparkles className="w-6 h-6 text-purple-400 mx-auto" />
-            <p className="font-semibold text-gray-700">아직 저장된 학습 정리가 없습니다.</p>
-            <p className="text-gray-400">
-              위의 입력창에 오늘 배운 내용이나 생각을 작성하고 [저장하기]를 누르면 여기에 기록되어 모두 함께 볼 수 있습니다.
-            </p>
-          </div>
-        ) : (
-          posts.map((post) => {
-            const isAuthor = !!(user && post.authorId && user.uid === post.authorId);
-            const isJustSaved = post.id === justSavedPostId;
-            const commentInput = commentInputs[post.id] || { content: '' };
-
-            return (
-              <article
-                key={post.id}
-                id={`summary-${post.id}`}
-                className={`bg-white border rounded-xl shadow-xs overflow-hidden transition-all duration-300 ${
-                  isJustSaved
-                    ? 'border-purple-500 ring-2 ring-purple-300/80'
-                    : 'border-gray-200 hover:border-purple-200'
-                }`}
-              >
-                {/* Post Header */}
-                <div className="p-4 sm:p-5 border-b border-gray-100 flex items-start justify-between gap-3 bg-gradient-to-r from-purple-50/20 to-white">
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold text-base sm:text-lg text-gray-900 break-words">
-                        {post.title}
-                      </h3>
-                      {isJustSaved && (
-                        <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full animate-pulse">
-                          방금 저장됨
-                        </span>
-                      )}
-                      {isAuthor && (
-                        <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
-                          내 글
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2">
-                      {/* Author badge */}
-                      <div className="flex items-center space-x-1.5">
-                        {post.authorPhotoUrl ? (
-                          <img
-                            src={post.authorPhotoUrl}
-                            alt=""
-                            className="w-4 h-4 rounded-full"
-                          />
-                        ) : (
-                          <span className="w-4 h-4 rounded-full bg-purple-600 text-white text-[9px] flex items-center justify-center font-bold">
-                            {post.authorName.charAt(0)}
-                          </span>
-                        )}
-                        <span className="font-semibold text-gray-800">{post.authorName}</span>
-                      </div>
-
-                      {post.authorEmail && (
-                        <span className="text-[11px] text-gray-400 font-mono">
-                          ({post.authorEmail})
-                        </span>
-                      )}
-
-                      <span>•</span>
-
-                      <div className="flex items-center space-x-1 text-gray-400">
-                        <Clock className="w-3 h-3" />
-                        <span>
-                          {new Date(post.createdAt).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Edit / Delete actions: only visible to author */}
-                  {isAuthor && (
-                    <div className="flex items-center space-x-1 text-gray-400 shrink-0">
-                      <button
-                        onClick={() => handleStartEdit(post)}
-                        className="p-1.5 hover:text-purple-600 hover:bg-purple-50 rounded cursor-pointer"
-                        title="수정"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeletePost(post)}
-                        className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
-                        title="삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Post Body */}
-                <div className="p-4 sm:p-5 space-y-3">
-                  <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line font-normal">
-                    {post.content}
-                  </div>
-
-                  {post.imageUrl && (
-                    <div className="pt-2">
-                      <img
-                        src={post.imageUrl}
-                        alt={post.imageCaption || '첨부 사진'}
-                        className="max-h-80 object-contain rounded-lg border border-gray-200 bg-gray-50"
-                      />
-                      {post.imageCaption && (
-                        <p className="text-xs text-gray-500 mt-1">{post.imageCaption}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Like Count & Simple Bar */}
-                <div className="px-4 sm:px-5 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs text-gray-600">
-                  <button
-                    onClick={() => handleLikePost(post.id)}
-                    className="flex items-center space-x-1 hover:text-pink-600 font-semibold cursor-pointer"
-                  >
-                    <Heart
-                      className={`w-3.5 h-3.5 ${
-                        (post.likes || 0) > 0 ? 'fill-pink-500 text-pink-500' : ''
-                      }`}
-                    />
-                    <span>좋아요 {post.likes || 0}</span>
-                  </button>
-
-                  <span className="flex items-center space-x-1 text-gray-500">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>댓글 {post.comments?.length || 0}개</span>
-                  </span>
-                </div>
-
-                {/* Comments Section: Google Auth strictly required to comment */}
-                <div className="p-4 sm:p-5 bg-gray-50/40 border-t border-gray-100 space-y-3">
-                  {/* Comments list */}
-                  {post.comments && post.comments.length > 0 ? (
-                    <div className="space-y-2">
-                      {post.comments.map((cmt) => {
-                        const isCommentAuthor = !!(user && cmt.authorId === user.uid);
-
-                        return (
-                          <div
-                            key={cmt.id}
-                            className="bg-white p-2.5 sm:p-3 rounded-lg border border-gray-200 flex items-start justify-between gap-2 text-xs shadow-2xs"
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-1">
-                                {cmt.authorPhotoUrl ? (
-                                  <img
-                                    src={cmt.authorPhotoUrl}
-                                    alt=""
-                                    className="w-4 h-4 rounded-full"
-                                  />
-                                ) : (
-                                  <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
-                                    {cmt.authorName.charAt(0)}
-                                  </span>
-                                )}
-                                <span className="font-bold text-gray-900">
-                                  {cmt.authorName}
-                                </span>
-                                {cmt.authorEmail && (
-                                  <span className="text-[10px] text-gray-400 font-mono hidden sm:inline">
-                                    ({cmt.authorEmail})
-                                  </span>
-                                )}
-                                <span className="text-[11px] text-gray-400">
-                                  {new Date(cmt.createdAt).toLocaleTimeString('ko-KR', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                              </div>
-                              <p className="text-gray-700 leading-normal pl-5">
-                                {cmt.content}
-                              </p>
-                            </div>
-
-                            {isCommentAuthor && (
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteComment(post.id, cmt)}
-                                className="text-gray-300 hover:text-red-500 p-0.5 cursor-pointer"
-                                title="댓글 삭제"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-
-                  {/* Comment Input or Google Login Prompt */}
-                  {user ? (
-                    <div className="pt-1 space-y-1.5">
-                      <div className="flex items-center space-x-2 text-xs text-gray-600 mb-1">
-                        <span className="font-semibold text-gray-700">
-                          {user.displayName || user.email?.split('@')[0]}
-                        </span>
-                        <span className="text-[11px] text-gray-400 font-mono">
-                          계정으로 댓글 작성
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={commentInput.content}
-                          onChange={(e) =>
-                            handleCommentContentChange(post.id, e.target.value)
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddComment(post.id);
-                            }
-                          }}
-                          placeholder="응원 댓글이나 생각을 남겨주세요..."
-                          className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddComment(post.id)}
-                          disabled={commentInput.isSubmitting}
-                          className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white rounded-lg text-xs font-semibold cursor-pointer shrink-0 flex items-center justify-center space-x-1 shadow-2xs"
-                        >
-                          <Send className="w-3 h-3" />
-                          <span>{commentInput.isSubmitting ? '등록 중' : '등록'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-100/70 border border-gray-200 rounded-lg p-2.5 flex items-center justify-between text-xs">
-                      <span className="text-gray-600">
-                        댓글은 회원으로 로그인한 사람만 작성할 수 있습니다.
-                      </span>
-                      <button
-                        type="button"
-                        onClick={onOpenAuthModal}
-                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded text-xs shrink-0 cursor-pointer flex items-center space-x-1"
-                      >
-                        <LogIn className="w-3 h-3" />
-                        <span>로그인 후 댓글 작성</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </article>
-            );
-          })
-        )}
-      </div>
     </div>
   );
 };

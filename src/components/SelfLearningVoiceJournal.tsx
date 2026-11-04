@@ -4,6 +4,9 @@ import {
   analyzeVoiceJournalWithAI, 
   blobToDataUrl, 
   getJournalForSection, 
+  getJournalListForSection,
+  saveVoiceJournalToList,
+  deleteVoiceJournalFromList,
   saveVoiceJournal, 
   deleteVoiceJournal 
 } from '../services/voiceJournalService';
@@ -18,6 +21,7 @@ import {
   AlertCircle, 
   BookOpen, 
   ChevronDown, 
+  ChevronsUpDown,
   ArrowRight, 
   Award, 
   Trash2, 
@@ -60,8 +64,10 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
   const [feedback, setFeedback] = useState<JournalFeedback | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Existing saved journal for this section
+  // Existing saved journal for this section & journal history list
   const [savedJournal, setSavedJournal] = useState<VoiceJournalEntry | null>(null);
+  const [journalList, setJournalList] = useState<VoiceJournalEntry[]>(() => getJournalListForSection(section.id));
+  const [expandedJournalIds, setExpandedJournalIds] = useState<Set<string>>(() => new Set());
 
   // Refs for audio recording
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -72,7 +78,9 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
 
   // Load saved journal when section changes
   useEffect(() => {
-    const existing = getJournalForSection(section.id);
+    const list = getJournalListForSection(section.id);
+    setJournalList(list);
+    const existing = list.length > 0 ? list[0] : getJournalForSection(section.id);
     if (existing) {
       setSavedJournal(existing);
       setTranscript(existing.transcript);
@@ -238,8 +246,10 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
         feedback: result
       };
 
-      saveVoiceJournal(newEntry);
+      const updatedList = saveVoiceJournalToList(newEntry);
+      setJournalList(updatedList);
       setSavedJournal(newEntry);
+      setExpandedJournalIds((prev) => new Set(prev).add(newEntry.id));
       showToast('✓ AI 학습 분석 완료! 오늘의 학습 기록이 저장되었습니다.');
     } catch (err) {
       console.error('Journal analysis failure:', err);
@@ -249,11 +259,39 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
     }
   };
 
+  // Delete individual journal entry from list
+  const handleDeleteJournalItem = (entryId: string) => {
+    if (window.confirm('이 음성 학습 기록을 삭제하시겠습니까?')) {
+      const updated = deleteVoiceJournalFromList(section.id, entryId);
+      setJournalList(updated);
+      setExpandedJournalIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entryId);
+        return next;
+      });
+      if (savedJournal?.id === entryId) {
+        if (updated.length > 0) {
+          setSavedJournal(updated[0]);
+          setTranscript(updated[0].transcript);
+          setFeedback(updated[0].feedback);
+          setAudioUrl(updated[0].audioDataUrl || null);
+        } else {
+          setSavedJournal(null);
+          setTranscript('');
+          setFeedback(null);
+          setAudioUrl(null);
+        }
+      }
+      showToast('삭제되었습니다.');
+    }
+  };
+
   // Handle re-recording reset
   const handleReset = () => {
     if (window.confirm('기존 녹음과 분석 결과를 초기화하고 새로 녹음하시겠습니까?')) {
       deleteVoiceJournal(section.id);
       setSavedJournal(null);
+      setJournalList([]);
       setTranscript('');
       setInterimText('');
       setFeedback(null);
@@ -285,13 +323,6 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
     const s = secs % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-
-  // Sample prompt chips for kids to start easily
-  const promptSuggestions = [
-    `"이 섹션에서 ${section.titleKo.split(' ')[0] || '대기'}에 대해 배웠어요."`,
-    section.objectives[0] ? `"${section.objectives[0].slice(0, 30)}..."` : `"교재에서 가장 신기했던 점은..."`,
-    `"핵심 개념과 원리를 설명해볼게요."`
-  ];
 
   return (
     <div className={embedded ? "space-y-4" : "my-5 bg-gradient-to-r from-amber-50/80 via-yellow-50/50 to-white border border-amber-300/80 rounded-xl p-4 shadow-2xs transition-all duration-200"}>
@@ -380,6 +411,145 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
       {/* Content Body */}
       {(isExpanded || embedded) && (
         <div className={embedded ? "space-y-4 animate-in fade-in duration-200" : "mt-4 pt-4 border-t border-amber-200/80 space-y-4 animate-in fade-in duration-200"}>
+          {/* 학습 이력 목록 (Saved Voice Journals) */}
+          {journalList.length > 0 && (
+            <div className="space-y-3 pb-2">
+              <div className="flex items-center justify-between pb-1 border-b border-amber-200/80">
+                <h4 className="text-sm font-bold text-gray-900 flex items-center space-x-2">
+                  <span>학습 이력</span>
+                  <span className="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold">
+                    {journalList.length}개
+                  </span>
+                </h4>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (expandedJournalIds.size === journalList.length) {
+                      setExpandedJournalIds(new Set());
+                    } else {
+                      setExpandedJournalIds(new Set(journalList.map((j) => j.id)));
+                    }
+                  }}
+                  className="text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50 px-2.5 py-1 rounded-lg font-medium flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <ChevronsUpDown className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{expandedJournalIds.size === journalList.length ? '전체 접기' : '전체 펼치기'}</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {journalList.map((entry) => {
+                  const isItemExpanded = expandedJournalIds.has(entry.id);
+                  const dateStr = new Date(entry.recordedAt).toLocaleString('ko-KR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+
+                  return (
+                    <div
+                      key={entry.id}
+                      className="bg-white border border-amber-200/90 rounded-xl overflow-hidden shadow-2xs transition-all hover:border-amber-300"
+                    >
+                      <div
+                        onClick={() => {
+                          setExpandedJournalIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(entry.id)) {
+                              next.delete(entry.id);
+                            } else {
+                              next.add(entry.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-amber-50/40 select-none transition-colors"
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0 pr-2">
+                          <span
+                            className={`w-5 h-5 rounded-md flex items-center justify-center text-amber-700 bg-amber-100/70 shrink-0 transition-transform ${
+                              isItemExpanded ? 'rotate-90' : ''
+                            }`}
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-bold text-gray-900 text-xs sm:text-sm truncate">
+                                {entry.transcript.slice(0, 36) || '음성 학습 녹음 기록'}
+                                {entry.transcript.length > 36 ? '...' : ''}
+                              </span>
+                              {entry.feedback?.score !== undefined && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                                  {entry.feedback.score}점
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2 text-[11px] text-gray-500 mt-0.5 font-mono">
+                              <span>{dateStr}</span>
+                              <span>•</span>
+                              <span>{formatTime(entry.durationSeconds)} 녹음</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteJournalItem(entry.id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors"
+                            title="기록 삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded detail */}
+                      {isItemExpanded && (
+                        <div className="p-4 border-t border-amber-100 bg-amber-50/20 space-y-3 animate-in fade-in duration-150">
+                          {/* Transcript quote */}
+                          <div className="bg-white p-3 rounded-lg border border-amber-200/60 text-xs sm:text-sm text-gray-800 leading-relaxed whitespace-pre-line font-medium">
+                            "{entry.transcript}"
+                          </div>
+
+                          {/* Audio Player if available */}
+                          {entry.audioDataUrl && (
+                            <div className="flex items-center space-x-3 bg-white p-2.5 rounded-lg border border-amber-200/60">
+                              <audio controls src={entry.audioDataUrl} className="w-full h-8" />
+                            </div>
+                          )}
+
+                          {/* AI Feedback Summary */}
+                          {entry.feedback && (
+                            <div className="bg-white p-3.5 rounded-lg border border-amber-200/80 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-gray-900">
+                                  선생님 피드백: {entry.feedback.levelLabel}
+                                </span>
+                                <span className="text-xs font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  종합 {entry.feedback.score}점
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700 leading-relaxed">
+                                {entry.feedback.summary}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* 1. Interactive Recording Console */}
           <div className="bg-white rounded-xl border border-amber-200 p-4 shadow-2xs space-y-4">
             {/* Top Prompt Guidance for Kids */}
@@ -397,26 +567,6 @@ export const SelfLearningVoiceJournal: React.FC<SelfLearningVoiceJournalProps> =
                 </span>
               </div>
             </div>
-
-            {/* Quick Starter Chips */}
-            {!transcript && !isRecording && (
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-bold text-gray-500 block">
-                  💡 어떻게 말해야 할지 막막하다면 아래 예시를 눌러보세요:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {promptSuggestions.map((sug, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setTranscript(sug.replace(/^"|"$/g, ''))}
-                      className="text-xs bg-amber-50/60 hover:bg-amber-100/80 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-md transition-colors text-left cursor-pointer"
-                    >
-                      {sug}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Microphone Recording Control Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-amber-50 via-yellow-50/60 to-white p-3.5 rounded-xl border border-amber-200">

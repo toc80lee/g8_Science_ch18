@@ -56,9 +56,6 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <PanelLeft className="w-4 h-4 shrink-0" />
               )}
-              <span className="text-xs font-bold hidden sm:inline">
-                {isSidebarOpen ? "목차 접기" : "목차"}
-              </span>
             </button>
           )}
 

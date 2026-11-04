@@ -284,7 +284,8 @@ async function registerDirectFirestoreMember(params: {
   role: 'student' | 'parent' | 'teacher';
   schoolGrade: string;
 }): Promise<MemberSessionData> {
-  const uid = 'member_' + params.displayName.toLowerCase().replace(/[^a-z0-9가-힣]/g, '_') + '_' + (Date.now() % 100000);
+  const safeAlpha = params.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10);
+  const uid = 'member_' + (safeAlpha || 'student') + '_' + Math.random().toString(36).substring(2, 8) + '_' + (Date.now() % 100000);
   const session: MemberSessionData = {
     uid,
     email: params.email,
