@@ -584,11 +584,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               </span>
             )}
           </div>
-          {!isCompact && (
-            <p className="text-[11px] text-gray-500 mt-0.5">
-              💡 원어민 발음으로 들으며 과학 용어 발음과 문맥을 익혀보세요. 각 문단 옆 스피커 아이콘을 누르면 개별 듣기도 가능합니다.
-            </p>
-          )}
         </div>
       </div>
 
@@ -906,7 +901,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               <h4 className="font-bold text-gray-900 text-sm flex items-center space-x-1.5 group-hover:text-blue-700 transition-colors">
                 <span>교재 원문</span>
                 <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                  p. {section.pages.join(', ')} · 본문 완전 수록
+                  p. {section.pages.join(', ')}
                 </span>
               </h4>
             </div>
@@ -925,10 +920,10 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                title="텍스트 번역 및 해설 중심 모드"
+                title="Text"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>텍스트</span>
+                <span>Text</span>
               </button>
               <button
                 onClick={() => {
@@ -940,10 +935,10 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                title="원본 교재 고화질 사진 및 도표 중심 모드"
+                title="Book"
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>교재</span>
+                <span>Book</span>
               </button>
               <button
                 onClick={() => {
@@ -955,10 +950,10 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     ? 'bg-blue-600 text-white shadow-2xs font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                title="텍스트 번역과 원본 삽화를 나란히 배치"
+                title="Dual"
               >
                 <Columns className="w-3.5 h-3.5" />
-                <span>함께 보기</span>
+                <span>Dual</span>
               </button>
             </div>
           </div>
@@ -976,7 +971,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     langMode === 'ko' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  한글
+                  가
                 </button>
                 <button
                   onClick={() => setLangMode('en')}
@@ -984,7 +979,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     langMode === 'en' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  영어
+                  A
                 </button>
                 <button
                   onClick={() => setLangMode('side-by-side')}
@@ -992,7 +987,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                     langMode === 'side-by-side' ? 'bg-white text-blue-600 font-bold shadow-2xs' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  한영
+                  가A
                 </button>
               </div>
 
@@ -1001,7 +996,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 className="flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
-                <span>단어장</span>
+                <span>Voca</span>
               </button>
 
               {/* Highlight list / reviewer button */}
@@ -1011,7 +1006,7 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
                 title="본문 형광펜 표시 목록 열기"
               >
                 <Highlighter className="w-3 h-3 text-amber-600" />
-                <span>형광펜 ({sectionHighlights.length})</span>
+                <span>Mark ({sectionHighlights.length})</span>
               </button>
             </div>
           </div>
@@ -1259,10 +1254,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-gray-200">
                 {/* Left: Korean */}
                 <div className="space-y-4 pr-0 lg:pr-4">
-                  <div className="flex items-center justify-between text-xs font-bold text-blue-700 uppercase tracking-wide border-b border-blue-100 pb-1.5">
-                    <span>한국어 정밀 번역</span>
-                    <span className="text-[10px] text-gray-400 font-normal">단어 드래그로 사전 추가 가능</span>
-                  </div>
                   <div className="space-y-3.5 text-sm text-gray-800 leading-relaxed select-text">
                     {section.contentKo.map((p, i) => (
                       <p key={i} className="text-justify hover:bg-blue-50/20 p-1 rounded transition-colors">
@@ -1274,10 +1265,6 @@ export const TextbookReader: React.FC<TextbookReaderProps> = ({
 
                 {/* Right: English Original */}
                 <div className="space-y-4 pt-4 lg:pt-0 pl-0 lg:pl-6 font-serif">
-                  <div className="flex items-center justify-between text-xs font-bold text-gray-500 uppercase tracking-wide border-b border-gray-100 pb-1.5 font-sans">
-                    <span>English Original Textbook</span>
-                    <span className="text-[10px] text-gray-400 font-normal">Select word to save</span>
-                  </div>
                   {renderTTSAudioBar(true)}
                   <div className="space-y-3.5 text-sm text-gray-700 leading-relaxed select-text">
                     {section.contentEn.map((p, i) => renderEnglishParagraphItem(p, i))}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChapterSection } from '../types';
 import { VisualSimulator } from './VisualSimulator';
-import { RotateCcw, Copy, Check, FlaskConical, ChevronDown } from 'lucide-react';
+import { RotateCcw, FlaskConical, ChevronDown } from 'lucide-react';
 
 interface InteractiveCardProps {
   section: ChapterSection;
@@ -14,21 +14,12 @@ export const InteractiveCard: React.FC<InteractiveCardProps> = ({
 }) => {
   const spec = section.interactiveSpec;
   const [activeTabId, setActiveTabId] = useState<string>(spec.defaultTabId);
-  const [copied, setCopied] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   const activeTab = spec.tabs.find((t) => t.id === activeTabId) || spec.tabs[0];
 
   const handleReset = () => {
     setActiveTabId(spec.defaultTabId);
-  };
-
-  const handleCopyCode = () => {
-    if (activeTab.codeSnippet) {
-      navigator.clipboard.writeText(activeTab.codeSnippet);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
   };
 
   return (
@@ -119,47 +110,9 @@ export const InteractiveCard: React.FC<InteractiveCardProps> = ({
             </button>
           </div>
 
-          {/* Dual Split Pane Container (Left: Code/Data, Right: Interactive Outcome) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 border border-gray-200 rounded-lg bg-white overflow-hidden shadow-xs">
-            {/* Left Pane: Structured Code / Data Viewer */}
-            <div className="bg-[#1e1e1e] text-gray-200 font-mono text-xs p-4 flex flex-col justify-between overflow-x-auto min-h-[300px]">
-              <div>
-                <div className="flex items-center justify-between text-gray-400 text-[11px] pb-2 border-b border-gray-700 mb-3">
-                  <span className="flex items-center space-x-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
-                    <span className="ml-2 text-gray-300 font-sans">{tabPrefix(activeTab.label)} 시뮬레이션 코드 / 데이터</span>
-                  </span>
-                  <button
-                    onClick={handleCopyCode}
-                    className="hover:text-white flex items-center space-x-1 cursor-pointer"
-                    title="코드 복사"
-                  >
-                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span className="text-[10px]">{copied ? '복사됨' : '복사'}</span>
-                  </button>
-                </div>
-
-                <pre className="text-gray-300 whitespace-pre leading-relaxed select-text font-mono text-xs">
-                  {activeTab.codeSnippet || `// [${section.titleKo}]
-// 성취 목표: ${section.objectives[0] || ''}
-const studyData = {
-  chapter: 18,
-  topic: "${section.titleEn}",
-  pages: [${section.pages.join(', ')}]
-};`}
-                </pre>
-              </div>
-
-              <div className="pt-3 border-t border-gray-800 text-[11px] text-gray-400 flex items-center justify-between">
-                <span>TypeScript / Science Model</span>
-                <span className="text-gray-400">교재 {section.pages.join(', ')}페이지</span>
-              </div>
-            </div>
-
-            {/* Right Pane: Live Interactive Rendered Visual Outcome */}
-            <div className="p-4 bg-white flex flex-col justify-between min-h-[300px]">
+          {/* Interactive Simulation Visual Container */}
+          <div className="border border-gray-200 rounded-lg bg-white overflow-hidden shadow-xs">
+            <div className="p-4 sm:p-5 bg-white flex flex-col justify-between min-h-[300px]">
               <VisualSimulator section={section} activeTabId={activeTabId} />
 
               {/* Sub visual card bottom note */}

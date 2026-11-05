@@ -693,7 +693,7 @@ export default function App() {
                       ● Firebase 실시간 저장 활성화
                     </span>
                   )}
-                  <span>교재 {currentSection.pages.join(', ')}p</span>
+                  <span>{currentSection.pages.join(', ')}p</span>
                 </div>
               </div>
 
@@ -732,18 +732,13 @@ export default function App() {
               {/* Title Area */}
               <div className="mb-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start space-x-3.5">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 bg-black text-white font-bold text-base sm:text-lg rounded flex items-center justify-center shrink-0 shadow-xs">
-                      {currentSection.numberBadge}
-                    </div>
-                    <div>
-                      <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
-                        {currentSection.titleEn}
-                      </h1>
-                      <h2 className="text-sm sm:text-base font-semibold text-blue-700 mt-1 flex items-center space-x-1.5">
-                        <span>{currentSection.titleKo}</span>
-                      </h2>
-                    </div>
+                  <div>
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
+                      {currentSection.titleEn}
+                    </h1>
+                    <h2 className="text-sm sm:text-base font-semibold text-blue-700 mt-1 flex items-center space-x-1.5">
+                      <span>{currentSection.titleKo}</span>
+                    </h2>
                   </div>
 
                   {/* Right tools */}
@@ -762,7 +757,7 @@ export default function App() {
                         onChange={() => toggleSectionCompletion(currentSection.id)}
                         className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                       />
-                      <span>완료</span>
+                      <span>Complete</span>
                     </label>
                   </div>
                 </div>
@@ -824,7 +819,18 @@ export default function App() {
 
               {/* Bottom Pagination Buttons */}
               <div className="mt-10 pt-6 border-t border-gray-200 flex items-center justify-between">
-                <div />
+                {currentIndex > 0 ? (
+                  <button
+                    onClick={goToPrevSection}
+                    className="flex items-center justify-center w-10 h-9 rounded text-xs sm:text-sm font-bold transition-colors cursor-pointer text-white bg-blue-600 hover:bg-blue-700 shadow-xs"
+                    aria-label="이전 섹션"
+                    title="이전 섹션"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                ) : (
+                  <div className="w-10 h-9" />
+                )}
 
                 <div className="flex items-center space-x-2">
                   <button
@@ -836,7 +842,7 @@ export default function App() {
                     }`}
                   >
                     <Check className="w-4 h-4" />
-                    <span>{isCurrentCompleted ? '학습 완료됨' : '학습 완료 체크'}</span>
+                    <span>{isCurrentCompleted ? '완료됨' : '완료 체크'}</span>
                   </button>
                 </div>
 
