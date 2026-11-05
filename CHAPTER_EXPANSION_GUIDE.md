@@ -181,11 +181,17 @@ export const BILINGUAL_SCIENCE_DICTIONARY: Record<string, string[]> = {
 기존 Chapter 18에서 개발된 강력한 학습 도구들은 어떤 수정도 없이 새 단원에 그대로 주입됩니다.
 
 ### 3.1 교재 뷰어 (`<TextbookReader />`)
-* **역할**: 한·영 문단 대조, 단어 드래그 사전 등록, 직접/간접 형광펜(투명도 차등 적용), 원어민 TTS 오디오, 초고화질 스캔본 라이트박스 지원.
+* **역할**: 한·영 문단 대조, 단어 드래그 사전 등록, 직접/간접 형광펜(투명도 차등 적용), 원어민 TTS 오디오, 초고화질 스캔본 뷰어 지원.
+* **최신 UI 규약 (RFQ v1.04 ~ v1.05 반영)**:
+  - **모드 전환 버튼**: `Text` (텍스트 번역), `Book` (교재 스캔본), `Dual` (한·영 대조)
+  - **언어 선택 버튼**: `가` (한국어), `A` (영어 원문), `가A` (한영 대조)
+  - **상단 툴바**: `+ Voca` (단어 추가), `Mark (N)` (형광펜 목록 토글)
+  - **교재 배지**: `p. 428, 429` (불필요한 문구 없이 페이지 번호만 간결 표기)
+  - **대조 화면**: 상단에 중복되는 헤더 바 없이 본문 텍스트에 온전히 몰입할 수 있도록 미니멀하게 구성
 * **재사용 방법**:
 ```tsx
 <TextbookReader
-  section={currentActiveSection}             // Chapter 19의 섹션 전달
+  section={currentActiveSection}             // 신규 단원 섹션 전달
   customWords={customWords}
   highlights={textHighlights}
   onAddCustomWord={handleAddCustomWord}
@@ -200,8 +206,10 @@ export const BILINGUAL_SCIENCE_DICTIONARY: Record<string, string[]> = {
 
 ### 3.2 공유 학습 정리 및 댓글 (`<StudyBlogSection />`)
 * **역할**: 학생이 학습한 내용을 정리하여 저장하면 Firebase Firestore에 동기화되어 모든 학생 및 학부모가 열람하고 피드백 댓글을 나눌 수 있습니다.
-* **레이아웃 순서 규약**:  
-  사용자 피드백에 따라 **[기록된 학습 정리 목록]이 상단**에 위치하고, **[나의 학습 정리 작성창]이 하단**에 위치하도록 표준화되어 있습니다.
+* **최신 레이아웃 및 UX 규약**:  
+  - **[기록된 학습 정리] 목록이 상단**에 먼저 표시되며, 아코디언 행 클릭 시 상세 내용이 펼쳐집니다.
+  - 작성 에디터 박스는 기본적으로 접혀 있으며, 우측 상단의 **[작성 하기]** 버튼을 클릭했을 때만 하단에 부드럽게 나타납니다.
+  - 저장된 글이 없을 때는 거추장스러운 빈 점선 박스를 띄우지 않고 깔끔한 빈 목록을 유지합니다.
 * **재사용 방법**:
 ```tsx
 <StudyBlogSection
@@ -217,12 +225,15 @@ export const BILINGUAL_SCIENCE_DICTIONARY: Record<string, string[]> = {
 
 ### 3.3 음성 학습 일기 (`<SelfLearningVoiceJournal />`)
 * **역할**: 학생이 마이크로 음성 녹음을 진행하면 텍스트로 자동 변환되고, 단원의 핵심 개념이 포함되었는지 AI 루브릭 진단을 수행합니다.
+* **최신 UI 규약**:
+  - 상단에 **`학습 이력`** 목록이 표시되어 이전 음성 녹음 기록, 소요 시간, 평가 점수, 오디오 다시 듣기 및 AI 피드백을 펼쳐볼 수 있습니다.
+  - 마이크 버튼은 텍스트 없이 심플한 아이콘 버튼으로 구성됩니다.
+  - 분석 실행 버튼은 **`Feedback`** 으로 간결하게 제공됩니다.
 * **재사용 방법**:
 ```tsx
 <SelfLearningVoiceJournal
   section={currentActiveSection}
-  onSaveJournal={handleSaveVoiceJournal}
-  savedJournals={sectionVoiceJournals}
+  embedded={true}
 />
 ```
 
@@ -230,6 +241,7 @@ export const BILINGUAL_SCIENCE_DICTIONARY: Record<string, string[]> = {
 
 ### 3.4 인터랙티브 시각화 시뮬레이터 (`<VisualSimulator />`)
 * **역할**: 단원별 과학 원리를 조작형 그래픽으로 시뮬레이션합니다.
+* **최신 UI 규약**: 복잡한 개발자용 코드 박스를 배제하고 직관적인 비주얼 시뮬레이터 모델이 카드 전체 너비로 시원하게 렌더링됩니다.
 * **확장 규칙**:
   `InteractiveSpec.type`에 새 단원의 시뮬레이터 타입을 추가하고, `VisualSimulator.tsx`의 `switch-case`에 렌더러를 연결합니다.
   ```typescript
@@ -240,6 +252,22 @@ export const BILINGUAL_SCIENCE_DICTIONARY: Record<string, string[]> = {
     | 'ocean_currents_sim'  // Ch.19 해류 순환 (신규)
     | 'salinity_calc';      // Ch.19 염분 계산기 (신규)
   ```
+
+---
+
+### 3.5 플랫폼 네비게이션 및 공통 UI 표준화 규약
+모든 단원에서 통일된 사용자 경험을 유지하기 위해 다음 UI 규약을 준수해야 합니다:
+* **상단 헤더 네비게이션**:
+  - `Home`, `Overview`, `18A` / `19A`, `Vaca`, `Review`, `Track`
+  - 사전 탭은 숫자 배지 없이 깔끔하게 **`Vaca`** 로 단일 표기
+* **사이드바 목차 표기**:
+  - 순번 숫자 중복 없이 **`18.1 Air Care`**, **`19.1 Ocean Basin`** 처럼 단일 타이틀로 표기
+  - 하단 도구 링크: **`Glossary`**, **`Vocabulary`**, **`Records`**
+* **하단 페이징 버튼**:
+  - **첫 번째 섹션**: 이전 버튼 없이 중앙의 **`완료 체크`** 와 우측의 다음 버튼 **`>`** 만 노출
+  - **두 번째 섹션 이후**: 좌측 이전 버튼 **`<`**, 중앙 **`완료 체크`**, 우측 다음 버튼 **`>`** 으로 균형 배치
+* **단원 제목 영역**:
+  - 검은색 네모 박스 번호 없이 메인 영문 제목과 보조 한글 제목이 간결하게 노출되며, 우측에 `Vocabulary (N)` 및 `Complete` 체크박스 배치
 
 ---
 
